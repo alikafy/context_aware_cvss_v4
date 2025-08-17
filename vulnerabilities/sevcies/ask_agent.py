@@ -1,4 +1,5 @@
 import json
+import time
 
 import requests
 
@@ -16,7 +17,17 @@ def make_request(prompt:str, system_content: str = None, model: str = 'gpt-4o'):
             {"role": "user", "content": prompt}
         ]
     }
-    response = requests.post(url, json=payload, headers=headers)
-    response.raise_for_status()
-    return json.loads(
-        response.json()['choices'][0]['message']['content'].replace('```', '').replace('json', '', 1).replace('\n', ''))
+    attempts = 2
+    for attempt in range(1, attempts + 1):
+        try:
+            response = requests.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+            return json.loads(
+                response.json()['choices'][0]['message']['content'].replace('```', '').replace('json', '', 1).replace('\n', ''))
+        except Exception as e:
+            if attempt < attempts:
+                time.sleep(1.0)
+                continue
+            else:
+                raise e
+    return None

@@ -1,5 +1,9 @@
 from typing import Dict, Any, Tuple
-from type import Asset
+from assets.models import Asset
+from vulnerabilities.models import Vulnerability
+
+from vulnerabilities.sevcies.cvss_v4 import calculate_environmental_metric, convert_to_abbreviations, fetch_metrics
+from vulnerabilities.type import metrics_abbreviation, BaseMetric
 
 """
  ------------------------------------------------------------
@@ -319,3 +323,44 @@ def score_environmental(asset: Asset,
         'rationale': rationale,
         'confidence': confidence
     }
+
+def rule_base_answer(asset: Asset, vuln: Vulnerability):
+    answer = score_environmental(asset)
+    base_metric = fetch_metrics(vuln.base_vector)
+    rule_base = prepare_rule_base_for_calculator(answer, asset, base_metric)
+    return calculate_environmental_metric(rule_base)
+
+def prepare_rule_base_for_calculator(answer: dict, asset: Asset, base_metric: BaseMetric):
+    base = {
+        "AV": metrics_abbreviation[base_metric.AV.value],
+        "AC": metrics_abbreviation[base_metric.AC.value],
+        "AT": metrics_abbreviation[base_metric.AT.value],
+        "PR": metrics_abbreviation[base_metric.PR.value],
+        "UI": metrics_abbreviation[base_metric.UI.value],
+        "VC": metrics_abbreviation[base_metric.VC.value],
+        "VI": metrics_abbreviation[base_metric.VI.value],
+        "VA": metrics_abbreviation[base_metric.VA.value],
+        "SC": metrics_abbreviation[base_metric.SC.value],
+        "SI": metrics_abbreviation[base_metric.SI.value],
+        "SA": metrics_abbreviation[base_metric.SA.value]
+    }
+    env = {
+        "MAV": convert_to_abbreviations(answer['metrics']["MAV"]),
+        "MAC": convert_to_abbreviations(answer['metrics']["MAC"]),
+        "MAT": convert_to_abbreviations(answer['metrics']["MAT"]),
+        "MPR": convert_to_abbreviations(answer['metrics']["MPR"]),
+        "MUI": convert_to_abbreviations(answer['metrics']["MUI"]),
+        "MVC": convert_to_abbreviations(answer['metrics']["MVC"]),
+        "MVI": convert_to_abbreviations(answer['metrics']["MVI"]),
+        "MVA": convert_to_abbreviations(answer['metrics']["MVA"]),
+        "MSC": convert_to_abbreviations(answer['metrics']["MSC"]),
+        "MSI": convert_to_abbreviations(answer['metrics']["MSI"]),
+        "MSA": convert_to_abbreviations(answer['metrics']["MSA"]),
+    }
+
+    req = {
+        "CR": metrics_abbreviation[asset.security_requirements_confidentiality.upper()],
+        "IR": metrics_abbreviation[asset.security_requirements_integrity.upper()],
+        "AR": metrics_abbreviation[asset.security_requirements_availability.upper()]
+    }
+    return {**base, **env, **req}

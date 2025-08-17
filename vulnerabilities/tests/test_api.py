@@ -32,7 +32,7 @@ class APITest(APITestCase):
         vuln = Vulnerability.objects.get(cve_id=cve_id)
         url = f"/api/vuln/scan/{vuln.id}/"
         data = {
-            'model_name': 'gpt-4o'
+            'agent_model': 'gpt-4o'
         }
         response = self.client.post(url, data, 'json')
         self.assertEqual(response.status_code, 200)
@@ -42,16 +42,19 @@ class APITest(APITestCase):
             Asset,
             name="Elber",
             version='5.9.0',
-            is_active=True
+            is_active=True,
+            security_requirements_confidentiality='high',
+            security_requirements_integrity='high',
+            security_requirements_availability='high',
         )
         cve_id = "CVE-2025-0674"
         url = f"/api/vuln/fetch-cve/{cve_id}/"
         self.client.get(url)
         vuln = Vulnerability.objects.get(cve_id=cve_id)
-        vuln.set(asset)
+        vuln.impacted_assets.add(asset)
         url = f"/api/vuln/calculate/{vuln.id}/"
         data = {
             'agent_model': 'gpt-4o'
         }
-        response = self.client.post(url, data)
+        response = self.client.post(url, data, 'json')
         self.assertEqual(response.status_code, 200)

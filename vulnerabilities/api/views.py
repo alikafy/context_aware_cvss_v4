@@ -8,7 +8,9 @@ from assets.api.serializers import AssetSerializer
 from vulnerabilities.api.filters import VulnerabilityFilter
 from vulnerabilities.models import Vulnerability
 from vulnerabilities.api.serializers import VulnerabilitySerializer
+from vulnerabilities.sevcies.agent_calculator import AgentCalculator
 from vulnerabilities.sevcies.fetch_cve import FetchCVEService
+from vulnerabilities.sevcies.rule_base_calculator import rule_base_answer
 from vulnerabilities.sevcies.scan import Scan
 
 
@@ -35,31 +37,36 @@ class ScanView(APIView):
 
     def post(self, request, vuln_id):
         try:
-            model_name = request.data.get('model_name', None)
+            agent_model = request.data.get('agent_model', None)
             vulnerability = Vulnerability.objects.get(id=vuln_id)
         except Vulnerability.DoesNotExist:
             raise NotFound('vulnerability is not exists', 'InvalidVulnerability')
 
-        impacted_assets = Scan(vulnerability, model_name).scan()
+        impacted_assets = Scan(vulnerability, agent_model).scan()
         vulnerability.impacted_assets.set(impacted_assets)
         serializer = AssetSerializer(impacted_assets, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CalculateView(APIView):
-    serializer_class = VulnerabilitySerializer
 
     def post(self, request, vuln_id):
         try:
-            model_name = request.data.get('model_name', None)
+            agent_model = request.data.get('agent_model', None)
             vulnerability = Vulnerability.objects.get(id=vuln_id)
         except Vulnerability.DoesNotExist:
             raise NotFound('vulnerability is not exists', 'InvalidVulnerability')
 
-        impacted_assets = Scan(vulnerability, model_name).scan()
-        vulnerability.impacted_assets.set(impacted_assets)
-        serializer = AssetSerializer(impacted_assets, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = VulnerabilitySerializer(vulnerability)
+        values = []
+        for asset in vulnerability.impacted_assets.all():
+            if not asset.is_active:
+                continue
+            agent_response = AgentCalculator(vulnerability, asset, agent_model).calculate()
+            rule_base_response = rule_base_answer(asset, vulnerability)
+            values.append({'agent_response': agent_response, 'rule_base_response': rule_base_response, 'asset': AssetSerializer(asset).data})
+        response = {'vulnerability': serializer.data, 'values': values}
+        return Response(response, status=status.HTTP_200_OK)
 
 
 class VulnerabilityReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
