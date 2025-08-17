@@ -1,5 +1,5 @@
 from assets.models import Asset
-from vulnerabilities.models import Vulnerability
+from vulnerabilities.models import Vulnerability, Response
 from vulnerabilities.sevcies.ask_agent import make_request
 from vulnerabilities.sevcies.cvss_v4 import calculate_environmental_metric, convert_to_abbreviations, fetch_metrics
 from vulnerabilities.type import BaseMetric, metrics_abbreviation
@@ -20,9 +20,14 @@ class AgentCalculator:
         except Exception as e:
             score, severity = None, None
         agent_answer.update({'score': score, 'severity': severity})
-        self.vuln.agent_response = agent_answer
-        self.vuln.agent_score = score
-        self.vuln.save()
+        Response.objects.update_or_create(
+            impacted_asset=self.asset,
+            vulnerability=self.vuln,
+            defaults={
+                'agent_response': agent_answer,
+                'agent_score': score,
+            }
+        )
         return agent_answer
 
     def agent_answer(self):

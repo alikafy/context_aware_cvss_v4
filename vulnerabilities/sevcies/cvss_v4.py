@@ -1,5 +1,4 @@
 import re
-from functools import lru_cache
 
 import requests
 from bs4 import BeautifulSoup
@@ -72,3 +71,17 @@ def fetch_cvss_metric(metric_obj):
     metric_obj.description = description
     metric_obj.values_description = values
     return metric_obj
+
+def score_to_severity(score):
+    """Helper: Convert numeric CVSS score to qualitative severity."""
+    if score is None:
+        return None
+    if score >= 9.0:
+        return "Critical"
+    elif score >= 7.0:
+        return "High"
+    elif score >= 4.0:
+        return "Medium"
+    elif score > 0.0:
+        return "Low"
+    return "None"

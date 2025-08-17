@@ -5,9 +5,11 @@ from rest_framework.response import Response
 from rest_framework import status, viewsets, filters
 
 from assets.api.serializers import AssetSerializer
+from context_aware.settings import IS_ACTIVE_MOCK
 from vulnerabilities.api.filters import VulnerabilityFilter
-from vulnerabilities.models import Vulnerability
-from vulnerabilities.api.serializers import VulnerabilitySerializer
+from vulnerabilities.mock import CALCULATOR_MOCK, SCAN_MOCK
+from vulnerabilities.models import Vulnerability, Response as ResponseModel
+from vulnerabilities.api.serializers import VulnerabilitySerializer, ResponseSerializer
 from vulnerabilities.sevcies.agent_calculator import AgentCalculator
 from vulnerabilities.sevcies.fetch_cve import FetchCVEService
 from vulnerabilities.sevcies.rule_base_calculator import rule_base_answer
@@ -42,6 +44,9 @@ class ScanView(APIView):
         except Vulnerability.DoesNotExist:
             raise NotFound('vulnerability is not exists', 'InvalidVulnerability')
 
+        if IS_ACTIVE_MOCK:
+            return Response(SCAN_MOCK, status=status.HTTP_200_OK)
+
         impacted_assets = Scan(vulnerability, agent_model).scan()
         vulnerability.impacted_assets.set(impacted_assets)
         serializer = AssetSerializer(impacted_assets, many=True)
@@ -57,7 +62,9 @@ class CalculateView(APIView):
         except Vulnerability.DoesNotExist:
             raise NotFound('vulnerability is not exists', 'InvalidVulnerability')
 
-        serializer = VulnerabilitySerializer(vulnerability)
+        if IS_ACTIVE_MOCK:
+            return Response(CALCULATOR_MOCK, status=status.HTTP_200_OK)
+
         values = []
         for asset in vulnerability.impacted_assets.all():
             if not asset.is_active:
@@ -65,7 +72,7 @@ class CalculateView(APIView):
             agent_response = AgentCalculator(vulnerability, asset, agent_model).calculate()
             rule_base_response = rule_base_answer(asset, vulnerability)
             values.append({'agent_response': agent_response, 'rule_base_response': rule_base_response, 'asset': AssetSerializer(asset).data})
-        response = {'vulnerability': serializer.data, 'values': values}
+        response = {'vulnerability_id': vulnerability.id, 'values': values}
         return Response(response, status=status.HTTP_200_OK)
 
 
@@ -75,12 +82,11 @@ class VulnerabilityReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
       - list:    GET /api/vulnerabilities/?ordering=-base_score&is_resolve=false&base_severity=High
       - retrieve GET /api/vulnerabilities/<pk>/
     """
-    queryset = Vulnerability.objects.all().order_by("cve_id")
-    serializer_class = VulnerabilitySerializer
+    queryset = ResponseModel.objects.select_related('vulnerability', 'impacted_asset').order_by("-id")
+    serializer_class = ResponseSerializer
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = VulnerabilityFilter
 
     # allow sorting by these fields (ASC/DESC via ?ordering= or ?ordering=-field)
-    ordering_fields = ["cve_id", "base_score", "agent_score", "rule_score"]
-    ordering = ["cve_id"]  # default
+    ordering_fields = ["vulnerability__cve_id", "vulnerability__base_score", "agent_score", "rule_score"]

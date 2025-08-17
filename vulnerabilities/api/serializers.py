@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from assets.models import Asset
-from vulnerabilities.models import Vulnerability
+from vulnerabilities.models import Vulnerability, Response
 
 
 class VulnerabilitySerializer(serializers.ModelSerializer):
@@ -9,9 +9,6 @@ class VulnerabilitySerializer(serializers.ModelSerializer):
     impacted_assets = serializers.PrimaryKeyRelatedField(
         queryset=Asset.objects.all(), many=True
     )
-    base_severity = serializers.CharField(read_only=True)
-    agent_severity = serializers.CharField(read_only=True)
-    rule_severity  = serializers.CharField(read_only=True)
 
     class Meta:
         model = Vulnerability
@@ -23,17 +20,29 @@ class VulnerabilitySerializer(serializers.ModelSerializer):
             'is_resolve',
             'weaknesses',
             'base_vector',
-            'agent_response',
-            'rule_response',
             'base_score',
-            'agent_score',
-            'rule_score',
-            'cve_response',
-            'agent_model',
             'agent_model_display',
             'base_severity',
-            'agent_severity',
-            'rule_severity',
             'impacted_assets',
-            "base_severity", "agent_severity", "rule_severity",
+            # 'cve_response',
+        ]
+
+
+class ResponseSerializer(serializers.ModelSerializer):
+    impacted_asset = serializers.PrimaryKeyRelatedField(queryset=Asset.objects.all())
+    vulnerability  = VulnerabilitySerializer(read_only=True)
+    vulnerability_id = serializers.PrimaryKeyRelatedField(
+        queryset=Vulnerability.objects.all(),
+        source='vulnerability',
+        write_only=True
+    )
+
+    class Meta:
+        model = Response
+        fields = [
+            'id', 'vulnerability', 'vulnerability_id',
+            'impacted_asset',
+            'agent_score', 'rule_score',
+            'agent_severity', 'rule_severity',
+            'agent_response', 'rule_response',
         ]

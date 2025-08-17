@@ -1,6 +1,6 @@
 from typing import Dict, Any, Tuple
 from assets.models import Asset
-from vulnerabilities.models import Vulnerability
+from vulnerabilities.models import Vulnerability, Response
 
 from vulnerabilities.sevcies.cvss_v4 import calculate_environmental_metric, convert_to_abbreviations, fetch_metrics
 from vulnerabilities.type import metrics_abbreviation, BaseMetric
@@ -328,7 +328,17 @@ def rule_base_answer(asset: Asset, vuln: Vulnerability):
     answer = score_environmental(asset)
     base_metric = fetch_metrics(vuln.base_vector)
     rule_base = prepare_rule_base_for_calculator(answer, asset, base_metric)
-    return calculate_environmental_metric(rule_base)
+    score, severity = calculate_environmental_metric(rule_base)
+    answer.update({'score': score, 'severity': severity})
+    Response.objects.update_or_create(
+        impacted_asset=asset,
+        vulnerability=vuln,
+        defaults={
+            'rule_response': answer,
+            'rule_score': score,
+        }
+    )
+    return answer
 
 def prepare_rule_base_for_calculator(answer: dict, asset: Asset, base_metric: BaseMetric):
     base = {

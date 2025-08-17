@@ -1,5 +1,3 @@
-from platform import version
-
 from model_bakery import baker
 from rest_framework.test import APITestCase
 
@@ -57,4 +55,7 @@ class APITest(APITestCase):
             'agent_model': 'gpt-4o'
         }
         response = self.client.post(url, data, 'json')
+        self.assertEqual(response.status_code, 200)
+        url = f"/api/vuln/vulnerabilities/1/"
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
