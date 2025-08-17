@@ -14,7 +14,7 @@ def calculate_environmental_metric(all_metrics):
     cvss = CVSS4(vector)
     scores = cvss.scores()
     severity = cvss.severity
-    return scores, severity
+    return scores[0], severity
 
 def convert_to_abbreviations(value: str):
     changed_value = value.upper()
