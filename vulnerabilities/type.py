@@ -115,6 +115,7 @@ metrics_abbreviation={
     "PASSIVE": "P",
     "ACTIVE": "A",
     "NOT_DEFINED": "X",
+    "NOT DEFINED": "X",
     "NEGLIGIBLE": "N",
     "SAFETY": "S",
 }

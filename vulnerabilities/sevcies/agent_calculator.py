@@ -31,22 +31,60 @@ class AgentCalculator:
         return agent_answer
 
     def agent_answer(self):
-        modified_metrics = {}
+        modified_metrics = {
+            'modified_metrics': {},
+            'rationale': {},
+            'confidence': {}
+        }
         prompts = PromptCreator(self.vuln, self.asset, self.base_metric)
+
         response = make_request(prompts.attack_vector, model=self.model_name)
-        modified_metrics['MAV'] = response
+        modified_metrics['modified_metrics']['MAV'] = response.get('modified_metrics', {}).get('MAV', 'NOT_DEFINED')
+        modified_metrics['confidence']['MAV'] = response.get('confidence', {}).get('MAV', None)
+        modified_metrics['rationale']['MAV'] = response.get('rationale', {}).get('MAV', None)
+
         response = make_request(prompts.attack_complicity, model=self.model_name)
-        modified_metrics['MAC'] = response
+        modified_metrics['modified_metrics']['MAC'] = response.get('modified_metrics', {}).get('MAC', 'NOT_DEFINED')
+        modified_metrics['confidence']['MAC'] = response.get('confidence', {}).get('MAC', None)
+        modified_metrics['rationale']['MAC'] = response.get('rationale', {}).get('MAC', None)
+
         response = make_request(prompts.attack_required, model=self.model_name)
-        modified_metrics['MAT'] = response
+        modified_metrics['modified_metrics']['MAT'] = response.get('modified_metrics', {}).get('MAT', 'NOT_DEFINED')
+        modified_metrics['confidence']['MAT'] = response.get('confidence', {}).get('MAT', None)
+        modified_metrics['rationale']['MAT'] = response.get('rationale', {}).get('MAT', None)
+
         response = make_request(prompts.privilege_required, model=self.model_name)
-        modified_metrics['MPR'] = response
+        modified_metrics['modified_metrics']['MPR'] = response.get('modified_metrics', {}).get('MPR', 'NOT_DEFINED')
+        modified_metrics['confidence']['MPR'] = response.get('confidence', {}).get('MPR', None)
+        modified_metrics['rationale']['MPR'] = response.get('rationale', {}).get('MPR', None)
+
         response = make_request(prompts.user_interaction, model=self.model_name)
-        modified_metrics['MUI'] = response
+        modified_metrics['modified_metrics']['MUI'] = response.get('modified_metrics', {}).get('MUI', 'NOT_DEFINED')
+        modified_metrics['confidence']['MUI'] = response.get('confidence', {}).get('MUI', None)
+        modified_metrics['rationale']['MUI'] = response.get('rationale', {}).get('MUI', None)
+
         response = make_request(prompts.vulnerable_system, model=self.model_name)
-        modified_metrics['MV'] = response
+        modified_metrics['modified_metrics']['MVA'] = response.get('modified_metrics', {}).get('MVA', 'NOT_DEFINED')
+        modified_metrics['confidence']['MVA'] = response.get('confidence', {}).get('MVA', None)
+        modified_metrics['rationale']['MVA'] = response.get('rationale', {}).get('MVA', None)
+        modified_metrics['modified_metrics']['MVC'] = response.get('modified_metrics', {}).get('MVC', 'NOT_DEFINED')
+        modified_metrics['confidence']['MVC'] = response.get('confidence', {}).get('MVC', None)
+        modified_metrics['rationale']['MVC'] = response.get('rationale', {}).get('MVC', None)
+        modified_metrics['modified_metrics']['MVI'] = response.get('modified_metrics', {}).get('MVI', 'NOT_DEFINED')
+        modified_metrics['confidence']['MVI'] = response.get('confidence', {}).get('MVI', None)
+        modified_metrics['rationale']['MVI'] = response.get('rationale', {}).get('MVI', None)
+
         response = make_request(prompts.vulnerable_sub_system, model=self.model_name)
-        modified_metrics['MS'] = response
+        modified_metrics['modified_metrics']['MSA'] = response.get('modified_metrics', {}).get('MSA', 'NOT_DEFINED')
+        modified_metrics['confidence']['MSA'] = response.get('confidence', {}).get('MSA', None)
+        modified_metrics['rationale']['MSA'] = response.get('rationale', {}).get('MSA', None)
+        modified_metrics['modified_metrics']['MSC'] = response.get('modified_metrics', {}).get('MSC', 'NOT_DEFINED')
+        modified_metrics['confidence']['MSC'] = response.get('confidence', {}).get('MSC', None)
+        modified_metrics['rationale']['MSC'] = response.get('rationale', {}).get('MSC', None)
+        modified_metrics['modified_metrics']['MSI'] = response.get('modified_metrics', {}).get('MSI', 'NOT_DEFINED')
+        modified_metrics['confidence']['MSI'] = response.get('confidence', {}).get('MSI', None)
+        modified_metrics['rationale']['MSI'] = response.get('rationale', {}).get('MSI', None)
+
         return modified_metrics
 
     def prepare_agent_answer_for_calculator(self, answer: dict):
@@ -64,17 +102,17 @@ class AgentCalculator:
             "SA": metrics_abbreviation[self.base_metric.SA.value]
         }
         env = {
-            "MAV": convert_to_abbreviations(answer.get("MAV", {}).get("modified_metrics", {}).get("MAV", "X")),
-            "MAC": convert_to_abbreviations(answer.get("MAC", {}).get("modified_metrics", {}).get("MAC", "X")),
-            "MAT": convert_to_abbreviations(answer.get("MAT", {}).get("modified_metrics", {}).get("MAT", "X")),
-            "MPR": convert_to_abbreviations(answer.get("MPR", {}).get("modified_metrics", {}).get("MPR", "X")),
-            "MUI": convert_to_abbreviations(answer.get("MUI", {}).get("modified_metrics", {}).get("MUI", "X")),
-            "MVC": convert_to_abbreviations(answer.get("MV", {}).get("modified_metrics", {}).get("MVC", "X")),
-            "MVI": convert_to_abbreviations(answer.get("MV", {}).get("modified_metrics", {}).get("MVI", "X")),
-            "MVA": convert_to_abbreviations(answer.get("MV", {}).get("modified_metrics", {}).get("MVA", "X")),
-            "MSC": convert_to_abbreviations(answer.get("MS", {}).get("modified_metrics", {}).get("MSC", "X")),
-            "MSI": convert_to_abbreviations(answer.get("MS", {}).get("modified_metrics", {}).get("MSI", "X")),
-            "MSA": convert_to_abbreviations(answer.get("MS", {}).get("modified_metrics", {}).get("MSA", "X")),
+            "MAV": convert_to_abbreviations(answer.get("modified_metrics", {}).get("MAV", "X")),
+            "MAC": convert_to_abbreviations(answer.get("modified_metrics", {}).get("MAC", "X")),
+            "MAT": convert_to_abbreviations(answer.get("modified_metrics", {}).get("MAT", "X")),
+            "MPR": convert_to_abbreviations(answer.get("modified_metrics", {}).get("MPR", "X")),
+            "MUI": convert_to_abbreviations(answer.get("modified_metrics", {}).get("MUI", "X")),
+            "MVC": convert_to_abbreviations(answer.get("modified_metrics", {}).get("MVC", "X")),
+            "MVI": convert_to_abbreviations(answer.get("modified_metrics", {}).get("MVI", "X")),
+            "MVA": convert_to_abbreviations(answer.get("modified_metrics", {}).get("MVA", "X")),
+            "MSC": convert_to_abbreviations(answer.get("modified_metrics", {}).get("MSC", "X")),
+            "MSI": convert_to_abbreviations(answer.get("modified_metrics", {}).get("MSI", "X")),
+            "MSA": convert_to_abbreviations(answer.get("modified_metrics", {}).get("MSA", "X")),
         }
 
         req = {

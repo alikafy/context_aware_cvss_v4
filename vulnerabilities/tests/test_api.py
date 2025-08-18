@@ -56,6 +56,6 @@ class APITest(APITestCase):
         }
         response = self.client.post(url, data, 'json')
         self.assertEqual(response.status_code, 200)
-        url = f"/api/vuln/vulnerabilities/1/"
+        url = f"/api/vuln/vulnerabilities/{vuln.response_set.first().id}/"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
