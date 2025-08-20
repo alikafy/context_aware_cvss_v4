@@ -80,23 +80,9 @@ def _subseq_internal_to_env(v: str) -> str:
     # Use 'L'->LOW, 'M'->NEGLIGIBLE, 'H'->HIGH
     return {'L':'LOW','M':'NEGLIGIBLE','H':'HIGH','X':'NOT_DEFINED'}.get(v, 'NOT_DEFINED')
 
-def score_environmental(asset: Asset,
-                        include_subsequent_impacts: bool = True) -> Dict[str, Any]:
+def score_environmental(asset: Asset) -> Dict[str, Any]:
     rationale, confidence = {}, {}
 
-    # -------------------------
-    # 1) Security Requirements (CR/IR/AR)
-    # -------------------------
-    CR = map_requirements(asset.security_requirements_confidentiality)
-    IR = map_requirements(asset.security_requirements_integrity)
-    AR = map_requirements(asset.security_requirements_availability)
-
-    rationale['CR'] = f"Mapped directly from security_requirements_confidentiality: {asset.security_requirements_confidentiality}."
-    rationale['IR'] = f"Mapped directly from security_requirements_integrity: {asset.security_requirements_integrity}."
-    rationale['AR'] = f"Mapped directly from security_requirements_availability: {asset.security_requirements_availability}."
-    confidence['CR'] = _conf(high=(CR in ('HIGH','MEDIUM','LOW')), low=(CR == 'NOT_DEFINED'))
-    confidence['IR'] = _conf(high=(IR in ('HIGH','MEDIUM','LOW')), low=(IR == 'NOT_DEFINED'))
-    confidence['AR'] = _conf(high=(AR in ('HIGH','MEDIUM','LOW')), low=(AR == 'NOT_DEFINED'))
 
     # -------------------------
     # 2) MAV - Modified Attack Vector (internal N/A/L/P -> strings)
@@ -271,52 +257,49 @@ def score_environmental(asset: Asset,
     )
     confidence['MVA'] = _conf(med=True)
 
-    # -------------------------
-    # 8) Optional subsequent-system impacts (MSC/MSI/MSA)
-    # -------------------------
-    metrics = {
-        'MAV': MAV, 'MAC': MAC, 'MAT': MAT, 'MPR': MPR, 'MUI': MUI,
-        'MVC': MVC, 'MVI': MVI, 'MVA': MVA,
-        'CR': CR, 'IR': IR, 'AR': AR
+
+    cascad = (asset.cascading_impact_potential or '').lower()
+    base_sub_i = {'high': 'H', 'moderate': 'M', 'low': 'L'}.get(cascad, 'L')
+    dep = (asset.asset_dependency_level or '').lower()
+    conn_crit = (asset.connected_systems_criticality or '').lower()
+    conn_sec = (asset.connection_security_controls or '').lower()
+    net_isol = net_conn == 'isolated'
+
+    def adjust_sub(v):
+        out = v
+        if dep == 'high' or conn_crit == 'high':
+            out = step(out, up=1, order=ORDER_IMPACT)
+        if conn_sec == 'strong' or net_isol:
+            out = step(out, down=1, order=ORDER_IMPACT)
+        return out
+
+    MSC_i = adjust_sub(base_sub_i)
+    MSI_i = adjust_sub(base_sub_i)
+    MSA_i = adjust_sub(base_sub_i)
+
+    # Map to allowed sets (no SAFETY inferred here due to lack of input signal)
+    sub_metric = {
+        'MSC': _subseq_internal_to_env(MSC_i),
+        'MSI': _subseq_internal_to_env(MSI_i),
+        'MSA': _subseq_internal_to_env(MSA_i)
     }
 
-    if include_subsequent_impacts:
-        cascad = (asset.cascading_impact_potential or '').lower()
-        base_sub_i = {'high': 'H', 'moderate': 'M', 'low': 'L'}.get(cascad, 'L')
-        dep = (asset.asset_dependency_level or '').lower()
-        conn_crit = (asset.connected_systems_criticality or '').lower()
-        conn_sec = (asset.connection_security_controls or '').lower()
-        net_isol = net_conn == 'isolated'
+    rationale['MSC'] = (
+        f"Base={_subseq_internal_to_env(base_sub_i)} (internal {base_sub_i}) from cascading_impact_potential={cascad}; "
+        f"adjusted by dependency={dep}, connected_systems_criticality={conn_crit}, "
+        f"connection_security_controls={conn_sec}, network_connectivity={net_conn}."
+    )
+    rationale['MSI'] = "Same adjustment model as MSC."
+    rationale['MSA'] = "Same adjustment model as MSC."
+    confidence['MSC'] = _conf(med=True)
+    confidence['MSI'] = _conf(med=True)
+    confidence['MSA'] = _conf(med=True)
 
-        def adjust_sub(v):
-            out = v
-            if dep == 'high' or conn_crit == 'high':
-                out = step(out, up=1, order=ORDER_IMPACT)
-            if conn_sec == 'strong' or net_isol:
-                out = step(out, down=1, order=ORDER_IMPACT)
-            return out
-
-        MSC_i = adjust_sub(base_sub_i)
-        MSI_i = adjust_sub(base_sub_i)
-        MSA_i = adjust_sub(base_sub_i)
-
-        # Map to allowed sets (no SAFETY inferred here due to lack of input signal)
-        metrics.update({
-            'MSC': _subseq_internal_to_env(MSC_i),
-            'MSI': _subseq_internal_to_env(MSI_i),
-            'MSA': _subseq_internal_to_env(MSA_i)
-        })
-
-        rationale['MSC'] = (
-            f"Base={_subseq_internal_to_env(base_sub_i)} (internal {base_sub_i}) from cascading_impact_potential={cascad}; "
-            f"adjusted by dependency={dep}, connected_systems_criticality={conn_crit}, "
-            f"connection_security_controls={conn_sec}, network_connectivity={net_conn}."
-        )
-        rationale['MSI'] = "Same adjustment model as MSC."
-        rationale['MSA'] = "Same adjustment model as MSC."
-        confidence['MSC'] = _conf(med=True)
-        confidence['MSI'] = _conf(med=True)
-        confidence['MSA'] = _conf(med=True)
+    metrics = {
+        'MAV': convert_to_abbreviations(MAV), 'MAC': convert_to_abbreviations(MAC), 'MAT': convert_to_abbreviations(MAT), 'MPR': convert_to_abbreviations(MPR), 'MUI': convert_to_abbreviations(MUI),
+        'MVC': convert_to_abbreviations(MVC), 'MVI': convert_to_abbreviations(MVI), 'MVA': convert_to_abbreviations(MVA), 'MSC': convert_to_abbreviations(MSC_i), 'MSI': convert_to_abbreviations(MSI_i),
+        'MSA': convert_to_abbreviations(MSA_i)
+    }
 
     return {
         'metrics': metrics,

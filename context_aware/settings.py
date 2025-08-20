@@ -1,4 +1,6 @@
 from pathlib import Path
+import environ
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -9,12 +11,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-2fd81o57(%-!1u%xtmcew$nbx0mj((9u)bye-qcu9)8@$g!a2o'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-IS_ACTIVE_MOCK = False
-ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -29,11 +25,14 @@ INSTALLED_APPS = [
     'django_filters',
     "drf_spectacular",
     "drf_spectacular_sidecar",
+    'corsheaders',
+
     'assets',
     'vulnerabilities',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -140,3 +139,30 @@ SPECTACULAR_SETTINGS = {
     # If you use DjangoFilterBackend, this helps document filters nicely
     "POSTPROCESSING_HOOKS": ["drf_spectacular.hooks.postprocess_schema_enums"],
 }
+
+env = environ.Env(
+    DEBUG=(bool, False),
+    IS_ACTIVE_MOCK=(bool, False)
+)
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
+
+# Security / Tokens
+GILAS_TOKEN = env("GILAS_TOKEN")
+
+# Booleans
+CORS_ALLOW_CREDENTIALS = env.bool("CORS_ALLOW_CREDENTIALS", default=True)
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=True)
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=True)
+
+# SameSite
+CSRF_COOKIE_SAMESITE = env("CSRF_COOKIE_SAMESITE", default="Lax")
+SESSION_COOKIE_SAMESITE = env("SESSION_COOKIE_SAMESITE", default="Lax")
+
+# Lists (split by comma)
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+
+# General
+DEBUG = env.bool("DEBUG", default=False)
+IS_ACTIVE_MOCK = env.bool("IS_ACTIVE_MOCK", default=False)

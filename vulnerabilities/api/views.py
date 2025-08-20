@@ -47,8 +47,12 @@ class ScanView(APIView):
         if IS_ACTIVE_MOCK:
             return Response(SCAN_MOCK, status=status.HTTP_200_OK)
 
-        impacted_assets = Scan(vulnerability, agent_model).scan()
-        vulnerability.impacted_assets.set(impacted_assets)
+        if vulnerability.impacted_assets.exists():
+            impacted_assets = vulnerability.impacted_assets.all()
+        else:
+            impacted_assets = Scan(vulnerability, agent_model).scan()
+            vulnerability.impacted_assets.set(impacted_assets)
+
         serializer = AssetSerializer(impacted_assets, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -69,8 +73,9 @@ class CalculateView(APIView):
         for asset in vulnerability.impacted_assets.all():
             if not asset.is_active:
                 continue
-            agent_response = AgentCalculator(vulnerability, asset, agent_model).calculate()
-            rule_base_response = rule_base_answer(asset, vulnerability)
+            response = vulnerability.response_set.filter(impacted_asset=asset)
+            agent_response = response.first().agent_response if response.exists() else AgentCalculator(vulnerability, asset, agent_model).calculate()
+            rule_base_response = response.first().rule_response if response.exists() else rule_base_answer(asset, vulnerability)
             values.append({'agent_response': agent_response, 'rule_base_response': rule_base_response, 'asset': AssetSerializer(asset).data})
         response = {'vulnerability_id': vulnerability.id, 'values': values}
         return Response(response, status=status.HTTP_200_OK)

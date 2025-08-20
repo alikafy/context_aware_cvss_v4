@@ -110,6 +110,7 @@ metrics_abbreviation={
     "PHYSICAL": "P",
     "LOW": "L",
     "HIGH": "H",
+    "MEDIUM": "M",
     "NONE": "N",
     "PRESENT": "P",
     "PASSIVE": "P",

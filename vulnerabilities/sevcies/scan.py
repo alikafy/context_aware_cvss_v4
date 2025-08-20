@@ -12,7 +12,7 @@ class Scan:
 
     def scan(self) -> List[Asset]:
         vul_systems_name = self.get_vuln_systems()
-        possible_impacted_assets = self.search_vuln_systems_in_assets(vul_systems_name)
+        possible_impacted_assets = self.search_vuln_systems_in_assets(list(set(vul_systems_name)))
         impacted_ids = self.match_affected_assets(possible_impacted_assets)
         assets = self.get_impacted_assets(impacted_ids, possible_impacted_assets)
         return assets
