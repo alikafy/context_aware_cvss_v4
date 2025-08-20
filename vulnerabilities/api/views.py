@@ -51,7 +51,8 @@ class ScanView(APIView):
             impacted_assets = vulnerability.impacted_assets.all()
         else:
             impacted_assets = Scan(vulnerability, agent_model).scan()
-            vulnerability.impacted_assets.set(impacted_assets)
+            if impacted_assets:
+                vulnerability.impacted_assets.set(impacted_assets)
 
         serializer = AssetSerializer(impacted_assets, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
