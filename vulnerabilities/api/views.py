@@ -1,5 +1,7 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets, filters
@@ -36,6 +38,8 @@ class VulnerabilityFetchView(APIView):
 
 class ScanView(APIView):
     serializer_class = AssetSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (AllowAny,)
 
     def post(self, request, vuln_id):
         try:
@@ -59,6 +63,8 @@ class ScanView(APIView):
 
 
 class CalculateView(APIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (AllowAny,)
 
     def post(self, request, vuln_id):
         try:
@@ -76,7 +82,7 @@ class CalculateView(APIView):
                 continue
             response = vulnerability.response_set.filter(impacted_asset=asset).first()
             agent_response = response.agent_response if response and response.agent_response else AgentCalculator(vulnerability, asset, agent_model).calculate()
-            rule_base_response = response.rule_response if response and response.rule_response else rule_base_answer(asset, vulnerability)
+            rule_base_response = rule_base_answer(asset, vulnerability)
             values.append({'agent_response': agent_response, 'rule_base_response': rule_base_response, 'asset': AssetSerializer(asset).data})
         response = {'vulnerability_id': vulnerability.id, 'values': values}
         return Response(response, status=status.HTTP_200_OK)

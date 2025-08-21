@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db import transaction
 from vulnerabilities.models import Vulnerability, Response
 
 
@@ -31,7 +32,7 @@ class VulnerabilityAdmin(admin.ModelAdmin):
     readonly_fields = ("base_severity",)
     filter_horizontal = ("impacted_assets",)
     inlines = [ResponseInline]
-    actions = ["mark_as_resolved", "mark_as_unresolved"]
+    actions = ["mark_as_resolved", "mark_as_unresolved", "clear_responses"]
 
     @admin.display(description="Impacted assets")
     def impacted_assets_count(self, obj):
@@ -46,6 +47,19 @@ class VulnerabilityAdmin(admin.ModelAdmin):
     def mark_as_unresolved(self, request, queryset):
         updated = queryset.update(is_resolve=False)
         self.message_user(request, f"Marked {updated} vulnerabilities as unresolved.")
+
+    @admin.action(description="Clear impacted assets (deletes related Responses)")
+    def clear_responses(self, request, queryset):
+        with transaction.atomic():
+            for obj in queryset:
+                obj.impacted_assets.set([])
+            qs = Response.objects.filter(vulnerability__in=queryset)
+            removed = qs.count()
+            qs.delete()
+        self.message_user(
+            request,
+            f"Removed {removed} impacted asset relation(s) across {queryset.count()} vulnerability(ies)."
+        )
 
 
 @admin.register(Response)
