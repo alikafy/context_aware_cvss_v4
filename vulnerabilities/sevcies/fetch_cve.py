@@ -39,28 +39,47 @@ class FetchCVEService:
         return cwes
 
     def get_cwe_description(self, cwe_id):
-        """
-        Fetch the CWE description for a given CWE ID from the MITRE API.
-        Example: cwe_id = 'CWE-79'
-        """
-        url = f"https://cwe.mitre.org/data/definitions/{cwe_id.split('-')[1]}.html"
-
         try:
-            response = requests.get(url)
+            # Normalize & build URL like https://cwe.mitre.org/data/definitions/310.html
+            if isinstance(cwe_id, str) and cwe_id.upper().startswith("CWE-"):
+                numeric = cwe_id.split("-", 1)[1].strip()
+            else:
+                numeric = str(cwe_id).strip()
+            url = f"https://cwe.mitre.org/data/definitions/{numeric}.html"
+
+            headers = {
+                "User-Agent": "Mozilla/5.0 (compatible; CWEFetcher/1.0)"
+            }
+            response = requests.get(url, headers=headers, timeout=20)
             response.raise_for_status()
 
-            # Extract description from the HTML response
-            soup = BeautifulSoup(response.text, 'html.parser')
+            soup = BeautifulSoup(response.text, "html.parser")
 
-            # The description is typically in a <div class="detail"> element
+            # Try Description first
             desc_div = soup.find("div", {"id": "Description"})
+            summary_div = soup.find("div", {"id": "Summary"})
+
+            def clean_text(node, heading_word):
+                # Get text with sensible spacing and strip the section label if present
+                text = node.get_text(separator=" ", strip=True)
+                # Some pages include the heading word at the start (e.g., "Description")
+                if text.startswith(heading_word):
+                    text = text[len(heading_word):].strip(" :\u00a0")
+                return text
+
             if desc_div:
-                description = desc_div.text.strip()
-                if description.startswith('Description'):
-                    description = description.replace("Description", '', 1)
-                return description.strip()
-            else:
-                return CWEFetchError('there is no description')
+                description = clean_text(desc_div, "Description")
+                if description:
+                    return description
+
+            # Fallback to Summary if Description missing or empty
+            if summary_div:
+                summary = clean_text(summary_div, "Summary")
+                if summary:
+                    return summary
+
+            # Nothing useful found
+            return ""
 
         except requests.exceptions.RequestException as e:
             raise CWEFetchError(e)
