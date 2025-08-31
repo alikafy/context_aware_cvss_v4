@@ -169,7 +169,7 @@ class Asset(models.Model):
 
     asset_dependency_level = models.CharField(max_length=6, choices=ASSET_DEPENDENCY_CHOICES)
     connected_systems_criticality = models.CharField(max_length=6, choices=ASSET_DEPENDENCY_CHOICES)
-    network_connectivity = models.CharField(max_length=6, choices=NETWORK_CONNECTIVITY_CHOICES)
+    network_connectivity = models.CharField(max_length=25, choices=NETWORK_CONNECTIVITY_CHOICES)
     cascading_impact_potential = models.CharField(max_length=6, choices=ASSET_DEPENDENCY_CHOICES)
     connection_security_controls = models.CharField(max_length=8, choices=CONNECTION_SECURITY_CHOICES)
 
