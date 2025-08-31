@@ -3,7 +3,6 @@ from .models import Asset
 
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
-    # list page (index)
     list_display = (
         "id", "name", "version", "tp", "exposure_level",
         "network_segmentation", "firewall_configuration",
@@ -42,11 +41,11 @@ class AssetAdmin(admin.ModelAdmin):
             "fields": (
                 "exposure_level", "network_segmentation", "firewall_configuration",
                 "vpn_access", "ssh_remote_access", "physical_access_required",
-                "network_access_complexity",
             )
         }),
         ("Security Controls", {
             "fields": (
+                "network_access_complexity",
                 "security_controls_waf", "security_controls_firewall",
                 "security_controls_ids", "security_controls_ips",
                 "security_controls_edr", "system_hardening_level",

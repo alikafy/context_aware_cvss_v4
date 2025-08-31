@@ -34,8 +34,11 @@ class FetchCVEService:
     def fetch_weaknesses(self, weaknesses: list):
         cwes = []
         for weakness in weaknesses:
-            description = self.get_cwe_description(weakness['description'][0]['value'])
-            cwes.append(dict(id=weakness['description'][0]['value'], description=description))
+            try:
+                description = self.get_cwe_description(weakness['description'][0]['value'])
+                cwes.append(dict(id=weakness['description'][0]['value'], description=description))
+            except Exception:
+                pass
         return cwes
 
     def get_cwe_description(self, cwe_id):
