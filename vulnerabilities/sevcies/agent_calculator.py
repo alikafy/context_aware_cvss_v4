@@ -375,36 +375,11 @@ class PromptCreator:
         self.asset = asset
         self.base_metrics = base_metrics
 
-    def role(self, metric: str):
+    def role(self):
         return f"""
                 ### ROLE
                 You are a careful security analyst applying CVSS v4 Environmental metrics.  
                 Use the provided CVE text and descriptions.  
-                
-                ### INSTRUCTIONS
-                - Output **only JSON**.  
-                - Keys must be exactly:
-                  -  metric here is {metric}
-                  - `modified_metrics`: dictionary with {{metric: abbreviation}}.  
-                  - `rationale`: dictionary with {{metric: explain completely}}.  
-                  - `confidence`: dictionary with {{metric: High|Medium|Low}}.  
-                - For `modified_metrics`, **use only abbreviations** like N. Never use full words or any other thing.  
-                - If evidence is uncertain, keep the initial value.  
-                - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
-                
-                ### OUTPUT FORMAT EXAMPLE
-                ```json
-                {{
-                  "modified_metrics": {{
-                    metric: "N",
-                  }},
-                  "rationale": {{
-                    metric: "Clear evidence.",
-                  }},
-                  "confidence": {{
-                    metric: "High",
-                  }}
-                }}
                 
                 ### 1. INPUT - Vulnerability Details
                 CVE_ID: {self.vuln.id}
@@ -418,7 +393,32 @@ class PromptCreator:
     @property
     def attack_vector(self):
         return f"""
-                {self.role("MAV")}
+                ### INSTRUCTIONS
+                - Output **only JSON**.  
+                - Keys must be exactly:
+                  - `modified_metrics`: dictionary with {{MAV: abbreviation}}.  
+                  - `rationale`: dictionary with {{MAV: explain completely}}.  
+                  - `confidence`: dictionary with {{MAV: High|Medium|Low}}.
+                  - `possible values for MAV`: Network(N), Adjacent(A), Local(L), Physical(P), Not Defined(X)   
+                - For `modified_metrics`, **use only abbreviations** like N. Never use full words or any other thing.  
+                - If evidence is uncertain, keep the initial value.  
+                - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
+                
+                ### OUTPUT FORMAT EXAMPLE
+                ```json
+                {{
+                  "modified_metrics": {{
+                    MAV: "N",
+                  }},
+                  "rationale": {{
+                    MAV: "Clear evidence.",
+                  }},
+                  "confidence": {{
+                    MAV: "High",
+                  }}
+                }}
+                
+                {self.role()}
                 Attack Vector (AV): {self.base_metrics.AV.description}
                 AV values: {self.base_metrics.AV.values_description}
 
@@ -454,7 +454,32 @@ class PromptCreator:
     @property
     def attack_complicity(self):
         return f"""
-                {self.role("MAC")}
+                ### INSTRUCTIONS
+                - Output **only JSON**.  
+                - Keys must be exactly:
+                  - `modified_metrics`: dictionary with {{MAC: abbreviation}}.  
+                  - `rationale`: dictionary with {{MAC: explain completely}}.  
+                  - `confidence`: dictionary with {{MAC: High|Medium|Low}}.
+                  - `possible values for MAC`: Low(L), High(H), Not Defined(X)   
+                - For `modified_metrics`, **use only abbreviations**. Never use full words or any other thing.  
+                - If evidence is uncertain, set Not Defined.  
+                - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
+                
+                ### OUTPUT FORMAT EXAMPLE
+                ```json
+                {{
+                  "modified_metrics": {{
+                    MAC: "L",
+                  }},
+                  "rationale": {{
+                    MAC: "Clear evidence.",
+                  }},
+                  "confidence": {{
+                    MAC: "High",
+                  }}
+                }}
+
+                {self.role()}
                 Attack Complexity (AC): {self.base_metrics.AC.description}
                 AC values: {self.base_metrics.AC.values_description}
 
@@ -504,7 +529,32 @@ class PromptCreator:
     @property
     def attack_required(self):
         return f"""
-                {self.role("MAT")}
+                ### INSTRUCTIONS
+                - Output **only JSON**.  
+                - Keys must be exactly:
+                  - `modified_metrics`: dictionary with {{MAT: abbreviation}}.  
+                  - `rationale`: dictionary with {{MAT: explain completely}}.  
+                  - `confidence`: dictionary with {{MAT: High|Medium|Low}}.
+                  - `possible values for MAT`: None(N), Present(P), Not Defined(X)   
+                - For `modified_metrics`, **use only abbreviations**. Never use full words or any other thing.  
+                - If evidence is uncertain, set Not Defined.  
+                - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
+                
+                ### OUTPUT FORMAT EXAMPLE
+                ```json
+                {{
+                  "modified_metrics": {{
+                    MAT: "N",
+                  }},
+                  "rationale": {{
+                    MAT: "Clear evidence.",
+                  }},
+                  "confidence": {{
+                    MAT: "High",
+                  }}
+                }}
+                
+                {self.role()}
                 Attack Requirements (AT): {self.base_metrics.AT.description}
                 AT values: {self.base_metrics.AT.values_description}
 
@@ -554,7 +604,32 @@ class PromptCreator:
     @property
     def privilege_required(self):
         return f"""
-                {self.role("MPR")}
+                ### INSTRUCTIONS
+                - Output **only JSON**.  
+                - Keys must be exactly:
+                  - `modified_metrics`: dictionary with {{MPR: abbreviation}}.  
+                  - `rationale`: dictionary with {{MPR: explain completely}}.  
+                  - `confidence`: dictionary with {{MPR: High|Medium|Low}}.
+                  - `possible values for MPR`: Low(L), High(H), None(N), Not Defined(X)   
+                - For `modified_metrics`, **use only abbreviations**. Never use full words or any other thing.  
+                - If evidence is uncertain, set Not Defined.  
+                - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
+                
+                ### OUTPUT FORMAT EXAMPLE
+                ```json
+                {{
+                  "modified_metrics": {{
+                    MPR: "N",
+                  }},
+                  "rationale": {{
+                    MPR: "Clear evidence.",
+                  }},
+                  "confidence": {{
+                    MPR: "High",
+                  }}
+                }}
+
+                {self.role()}
                 Privileges Required (PR): {self.base_metrics.PR.description}
                 PR values: {self.base_metrics.PR.values_description}                
 
@@ -581,7 +656,32 @@ class PromptCreator:
     @property
     def user_interaction(self):
         return f"""
-                {self.role("MUI")}
+                ### INSTRUCTIONS
+                - Output **only JSON**.  
+                - Keys must be exactly:
+                  - `modified_metrics`: dictionary with {{MUI: abbreviation}}.  
+                  - `rationale`: dictionary with {{MUI: explain completely}}.  
+                  - `confidence`: dictionary with {{MUI: High|Medium|Low}}.
+                  - `possible values for MUI`: None(N), Present(P), Active(A), Not Defined(X)   
+                - For `modified_metrics`, **use only abbreviations**. Never use full words or any other thing.  
+                - If evidence is uncertain, set Not Defined(X).  
+                - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
+                
+                ### OUTPUT FORMAT EXAMPLE
+                ```json
+                {{
+                  "modified_metrics": {{
+                    MUI: "N",
+                  }},
+                  "rationale": {{
+                    MUI: "Clear evidence.",
+                  }},
+                  "confidence": {{
+                    MUI: "High",
+                  }}
+                }}
+
+                {self.role()}
                 User Interaction (UI): {self.base_metrics.UI.description}
                 UI values: {self.base_metrics.UI.values_description}               
 
@@ -632,7 +732,40 @@ class PromptCreator:
     @property
     def vulnerable_system(self):
         return f"""
-                {self.role("MVC, MVI, MVA")}
+                ### INSTRUCTIONS
+                - Output **only JSON**.  
+                - Keys must be exactly:
+                  - `modified_metrics`: dictionary with {{MVI: abbreviation, MVA: abbreviation, MVC: abbreviation}}.  
+                  - `rationale`: dictionary with {{MVI: explain completely, MVA: explain completely, MVC: explain completely}}.  
+                  - `confidence`: dictionary with {{MVI: High|Medium|Low, MVA: High|Medium|Low, MVC: High|Medium|Low}}.
+                  - `possible values for MVI`: Low(L), High(H), None(N), Not Defined(X)   
+                  - `possible values for MVA`: Low(L), High(H), None(N), Not Defined(X)   
+                  - `possible values for MVC`: Low(L), High(H), None(N), Not Defined(X)   
+                - For `modified_metrics`, **use only abbreviations**. Never use full words or any other thing.  
+                - If evidence is uncertain, set Not Defined.  
+                - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
+                
+                ### OUTPUT FORMAT EXAMPLE
+                ```json
+                {{
+                  "modified_metrics": {{
+                    MVI: "N",
+                    MVA: "N",
+                    MVC: "N",
+                  }},
+                  "rationale": {{
+                    MVI: "Clear evidence.",
+                    MVA: "Clear evidence.",
+                    MVC: "Clear evidence.",
+                  }},
+                  "confidence": {{
+                    MVI: "High",
+                    MVA: "High",
+                    MVC: "High",
+                  }}
+                }}
+
+                {self.role()}
                 Vulnerable System Confidentiality (VC): {self.base_metrics.VC.description}
                 VC values: {self.base_metrics.VC.values_description}
                 Vulnerable System Integrity (VI): {self.base_metrics.VI.description}
@@ -676,7 +809,40 @@ class PromptCreator:
         extra_availability_values.update(negligible)
 
         return f"""
-                {self.role("MSC, MSI, MSA")}
+                ### INSTRUCTIONS
+                - Output **only JSON**.  
+                - Keys must be exactly:
+                  - `modified_metrics`: dictionary with {{MSI: abbreviation, MSA: abbreviation, MSC: abbreviation}}.  
+                  - `rationale`: dictionary with {{MSI: explain completely, MSA: explain completely, MSC: explain completely}}.  
+                  - `confidence`: dictionary with {{MSI: High|Medium|Low, MSA: High|Medium|Low, MSC: High|Medium|Low}}.
+                  - `possible values for MSI`: Low(L), High(H), Negligible(N), Not Defined(X)   
+                  - `possible values for MSA`: Safety(S), Low(L), High(H), Negligible(N), Not Defined(X)   
+                  - `possible values for MSC`: Safety(S), Low(L), High(H), Negligible(N), Not Defined(X)   
+                - For `modified_metrics`, **use only abbreviations**. Never use full words or any other thing.  
+                - If evidence is uncertain, set Not Defined.
+                - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
+                
+                ### OUTPUT FORMAT EXAMPLE
+                ```json
+                {{
+                  "modified_metrics": {{
+                    MSI: "N",
+                    MSA: "N",
+                    MSC: "N",
+                  }},
+                  "rationale": {{
+                    MSI: "Clear evidence.",
+                    MSA: "Clear evidence.",
+                    MSC: "Clear evidence.",
+                  }},
+                  "confidence": {{
+                    MSI: "High",
+                    MSA: "High",
+                    MSC: "High",
+                  }}
+                }}
+
+                {self.role()}
                 Subsequent System Confidentiality (SC): {self.base_metrics.SC.description}
                 SC values: {dict(**self.base_metrics.SC.values_description, **negligible)}
                 Subsequent System Integrity (SI): {self.base_metrics.SI.description}
