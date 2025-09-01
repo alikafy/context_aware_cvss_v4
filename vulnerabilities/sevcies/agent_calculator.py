@@ -386,7 +386,7 @@ class PromptCreator:
                   - `modified_metrics`: dictionary with {{metric: abbreviation}}.  
                   - `rationale`: dictionary with {{metric: rationale}}.  
                   - `confidence`: dictionary with {{metric: High|Medium|Low}}.  
-                - For `modified_metrics`, **use only abbreviations**. Never use full words.  
+                - For `modified_metrics`, **use only abbreviations** like N. Never use full words or any other thing.  
                 - If evidence is uncertain, keep the initial value.  
                 - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
                 
