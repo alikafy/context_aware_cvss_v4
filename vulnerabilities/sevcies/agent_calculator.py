@@ -18,6 +18,7 @@ class AgentCalculator:
             cvss_values = self.prepare_agent_answer_for_calculator(agent_answer)
             score, severity = calculate_environmental_metric(cvss_values)
         except Exception as e:
+            print(e)
             score, severity = None, None
         agent_answer.update({'score': score, 'severity': severity})
         Response.objects.update_or_create(
