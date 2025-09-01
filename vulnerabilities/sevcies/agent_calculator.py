@@ -377,11 +377,35 @@ class PromptCreator:
     def role(self, metric: str):
         return f"""
                 ### ROLE
-                You are a careful security analyst applying CVSS v4 Environmental metrics.
-                Use the provided CVE text and descriptions. If evidence is uncertain, keep the initial value.
-                Only output JSON with keys: modified_metrics (just dict of {metric} and just abbreviations values), rationale (dict per metric), and confidence (dict per metric with values High|Medium|Low).
-                You can use the descriptions of the metrics and their values provided below. The descriptions for Modified Base Metrics are the same as for the corresponding Base Metrics. For example, MAV (Modified Attack Vector) uses the same description as AV (Attack Vector) and values.                
-
+                You are a careful security analyst applying CVSS v4 Environmental metrics.  
+                Use the provided CVE text and descriptions.  
+                
+                ### INSTRUCTIONS
+                - Output **only JSON**.  
+                - Keys must be exactly:
+                  - `modified_metrics`: dictionary with {metric: abbreviation}.  
+                  - `rationale`: dictionary with {metric: rationale}.  
+                  - `confidence`: dictionary with {metric: High|Medium|Low}.  
+                - For `modified_metrics`, **use only abbreviations** (e.g., for MAV: `N`, `L`, `A`, `P`, or `X`). Never use full words.  
+                - If evidence is uncertain, keep the initial value.  
+                - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
+                
+                ### OUTPUT FORMAT EXAMPLE
+                ```json
+                {
+                  "modified_metrics": {
+                    "MAV": "N",
+                    "MAC": "L"
+                  },
+                  "rationale": {
+                    "MAV": "Clear evidence of network exposure.",
+                    "MAC": "Low due to minimal complexity observed."
+                  },
+                  "confidence": {
+                    "MAV": "High",
+                    "MAC": "Medium"
+                  }
+                }               
                 ### 1. INPUT - Vulnerability Details
                 CVE_ID: {self.vuln.id}
                 Description: {self.vuln.cve_description}  
