@@ -297,9 +297,9 @@ def score_environmental(asset: Asset) -> Dict[str, Any]:
 
     metrics = {
         'MAV': convert_to_abbreviations(MAV), 'MAC': convert_to_abbreviations(MAC), 'MAT': convert_to_abbreviations(MAT), 'MPR': convert_to_abbreviations(MPR), 'MUI': convert_to_abbreviations(MUI),
-        'MVC': convert_to_abbreviations(MVC), 'MVI': convert_to_abbreviations(MVI), 'MVA': convert_to_abbreviations(MVA), 'MSC': convert_to_abbreviations(MSC_i), 'MSI': convert_to_abbreviations(MSI_i),
-        'MSA': convert_to_abbreviations(MSA_i)
+        'MVC': convert_to_abbreviations(MVC), 'MVI': convert_to_abbreviations(MVI), 'MVA': convert_to_abbreviations(MVA)
     }
+    metrics.update(sub_metric)
 
     return {
         'metrics': metrics,
