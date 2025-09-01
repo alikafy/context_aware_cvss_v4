@@ -82,7 +82,7 @@ class CalculateView(APIView):
                 continue
             response = vulnerability.response_set.filter(impacted_asset=asset).first()
             agent_response = response.agent_response if response and response.agent_response else AgentCalculator(vulnerability, asset, agent_model).calculate()
-            rule_base_response = rule_base_answer(asset, vulnerability)
+            rule_base_response = response.rule_response if response and response.rule_response and response.rule_response.get('score') else rule_base_answer(asset, vulnerability)
             values.append({'agent_response': agent_response, 'rule_base_response': rule_base_response, 'asset': AssetSerializer(asset).data})
         response = {'vulnerability_id': vulnerability.id, 'values': values}
         return Response(response, status=status.HTTP_200_OK)
