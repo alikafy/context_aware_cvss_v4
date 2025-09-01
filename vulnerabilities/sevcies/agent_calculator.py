@@ -2,7 +2,7 @@ from assets.models import Asset
 from vulnerabilities.models import Vulnerability, Response
 from vulnerabilities.sevcies.ask_agent import make_request
 from vulnerabilities.sevcies.cvss_v4 import calculate_environmental_metric, convert_to_abbreviations, fetch_metrics
-from vulnerabilities.type import BaseMetric, metrics_abbreviation
+from vulnerabilities.type import BaseMetric, metrics_abbreviation, AV
 
 
 class AgentCalculator:
@@ -383,29 +383,27 @@ class PromptCreator:
                 ### INSTRUCTIONS
                 - Output **only JSON**.  
                 - Keys must be exactly:
-                  - `modified_metrics`: dictionary with {metric: abbreviation}.  
-                  - `rationale`: dictionary with {metric: rationale}.  
-                  - `confidence`: dictionary with {metric: High|Medium|Low}.  
-                - For `modified_metrics`, **use only abbreviations** (e.g., for MAV: `N`, `L`, `A`, `P`, or `X`). Never use full words.  
+                  - `modified_metrics`: dictionary with {{metric: abbreviation}}.  
+                  - `rationale`: dictionary with {{metric: rationale}}.  
+                  - `confidence`: dictionary with {{metric: High|Medium|Low}}.  
+                - For `modified_metrics`, **use only abbreviations**. Never use full words.  
                 - If evidence is uncertain, keep the initial value.  
                 - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
                 
                 ### OUTPUT FORMAT EXAMPLE
                 ```json
-                {
-                  "modified_metrics": {
-                    "MAV": "N",
-                    "MAC": "L"
-                  },
-                  "rationale": {
-                    "MAV": "Clear evidence of network exposure.",
-                    "MAC": "Low due to minimal complexity observed."
-                  },
-                  "confidence": {
-                    "MAV": "High",
-                    "MAC": "Medium"
-                  }
-                }               
+                {{
+                  "modified_metrics": {{
+                    metric: "N",
+                  }},
+                  "rationale": {{
+                    metric: "Clear evidence.",
+                  }},
+                  "confidence": {{
+                    metric: "High",
+                  }}
+                }}
+                
                 ### 1. INPUT - Vulnerability Details
                 CVE_ID: {self.vuln.id}
                 Description: {self.vuln.cve_description}  
