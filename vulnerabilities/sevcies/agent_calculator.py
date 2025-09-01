@@ -383,8 +383,9 @@ class PromptCreator:
                 ### INSTRUCTIONS
                 - Output **only JSON**.  
                 - Keys must be exactly:
+                  -  metric here is {metric}
                   - `modified_metrics`: dictionary with {{metric: abbreviation}}.  
-                  - `rationale`: dictionary with {{metric: rationale}}.  
+                  - `rationale`: dictionary with {{metric: explain completely}}.  
                   - `confidence`: dictionary with {{metric: High|Medium|Low}}.  
                 - For `modified_metrics`, **use only abbreviations** like N. Never use full words or any other thing.  
                 - If evidence is uncertain, keep the initial value.  
