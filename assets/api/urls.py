@@ -1,6 +1,7 @@
-from django.urls import path
-from assets.api.views import AssetBulkFetchView
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = [
-    path("", AssetBulkFetchView.as_view(), name="assets-by-ids"),
-]
+from assets.api.views import AssetViewSet
+
+router = DefaultRouter()
+router.register(r'', AssetViewSet)
+urlpatterns = router.urls
