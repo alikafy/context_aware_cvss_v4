@@ -139,7 +139,6 @@ class Asset(models.Model):
     firewall_configuration = models.CharField(max_length=50, choices=FIREWALL_CONFIGURATION_CHOICES)
     vpn_access = models.CharField(max_length=20, choices=VPN_ACCESS_CHOICES)
     ssh_remote_access = models.CharField(max_length=5, choices=TRUE_FALSE_CHOICES)
-    physical_access_required = models.CharField(max_length=5, choices=TRUE_FALSE_CHOICES)
 
     security_controls_waf = models.CharField(max_length=7, choices=PRESENT_ABSENT_CHOICES)
     security_controls_firewall = models.CharField(max_length=7, choices=PRESENT_ABSENT_CHOICES)

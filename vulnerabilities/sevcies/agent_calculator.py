@@ -171,14 +171,6 @@ class AssetAttributeDescription:
         """
 
     @property
-    def physical_access_required(self):
-        return """
-            physical_access_required: Indicates if physical presence is required.
-                - true: Asset requires physical access
-                - false: No physical access required
-        """
-
-    @property
     def security_controls(self):
         return """
             security_controls_waf:
@@ -433,7 +425,6 @@ class PromptCreator:
                 {self.asset_description.firewall_configuration}
                 {self.asset_description.vpn_access}
                 {self.asset_description.ssh_remote_access}
-                {self.asset_description.physical_access_required}
                 {self.asset_description.security_controls}
 
                 | Category | Value |
@@ -443,7 +434,6 @@ class PromptCreator:
                 | firewall_configuration | {self.asset.firewall_configuration} |
                 | vpn_access | {self.asset.vpn_access} |
                 | ssh_remote_access | {self.asset.ssh_remote_access} |
-                | physical_access_required | {self.asset.physical_access_required} |
                 | security_controls_waf | {self.asset.security_controls_waf} |
                 | security_controls_firewall | {self.asset.security_controls_firewall} |
                 | security_controls_ids | {self.asset.security_controls_ids} |
@@ -494,7 +484,6 @@ class PromptCreator:
                 {self.asset_description.firewall_configuration}
                 {self.asset_description.vpn_access}
                 {self.asset_description.ssh_remote_access}
-                {self.asset_description.physical_access_required}
                 {self.asset_description.security_controls}
                 {self.asset_description.system_hardening_level}
                 {self.asset_description.software_patch_level}
@@ -511,7 +500,6 @@ class PromptCreator:
                 | firewall_configuration | {self.asset.firewall_configuration} |
                 | vpn_access | {self.asset.vpn_access} |
                 | ssh_remote_access | {self.asset.ssh_remote_access} |
-                | physical_access_required | {self.asset.physical_access_required} |
                 | security_controls_waf | {self.asset.security_controls_waf} |
                 | security_controls_firewall | {self.asset.security_controls_firewall} |
                 | security_controls_ids | {self.asset.security_controls_ids} |
@@ -569,7 +557,6 @@ class PromptCreator:
                 {self.asset_description.firewall_configuration}
                 {self.asset_description.vpn_access}
                 {self.asset_description.ssh_remote_access}
-                {self.asset_description.physical_access_required}
                 {self.asset_description.security_controls}
                 {self.asset_description.system_hardening_level}
                 {self.asset_description.software_patch_level}
@@ -586,7 +573,6 @@ class PromptCreator:
                 | firewall_configuration | {self.asset.firewall_configuration} |
                 | vpn_access | {self.asset.vpn_access} |
                 | ssh_remote_access | {self.asset.ssh_remote_access} |
-                | physical_access_required | {self.asset.physical_access_required} |
                 | security_controls_waf | {self.asset.security_controls_waf} |
                 | security_controls_firewall | {self.asset.security_controls_firewall} |
                 | security_controls_ids | {self.asset.security_controls_ids} |
@@ -697,7 +683,6 @@ class PromptCreator:
                 {self.asset_description.firewall_configuration}
                 {self.asset_description.vpn_access}
                 {self.asset_description.ssh_remote_access}
-                {self.asset_description.physical_access_required}
                 {self.asset_description.security_controls}
                 {self.asset_description.system_hardening_level}
                 {self.asset_description.software_patch_level}
@@ -714,7 +699,6 @@ class PromptCreator:
                 | firewall_configuration | {self.asset.firewall_configuration} |
                 | vpn_access | {self.asset.vpn_access} |
                 | ssh_remote_access | {self.asset.ssh_remote_access} |
-                | physical_access_required | {self.asset.physical_access_required} |
                 | security_controls_waf | {self.asset.security_controls_waf} |
                 | security_controls_firewall | {self.asset.security_controls_firewall} |
                 | security_controls_ids | {self.asset.security_controls_ids} |

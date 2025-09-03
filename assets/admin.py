@@ -40,7 +40,7 @@ class AssetAdmin(admin.ModelAdmin):
         ("Exposure & Network", {
             "fields": (
                 "exposure_level", "network_segmentation", "firewall_configuration",
-                "vpn_access", "ssh_remote_access", "physical_access_required",
+                "vpn_access", "ssh_remote_access",
             )
         }),
         ("Security Controls", {

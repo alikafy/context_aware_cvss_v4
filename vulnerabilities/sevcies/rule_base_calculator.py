@@ -87,7 +87,6 @@ def score_environmental(asset: Asset) -> Dict[str, Any]:
     # -------------------------
     # 2) MAV - Modified Attack Vector (internal N/A/L/P -> strings)
     # -------------------------
-    physical_required = boolish(asset.physical_access_required)
     exposure = (asset.exposure_level or '').lower()
     fw = (asset.firewall_configuration or '').lower()
     seg = (asset.network_segmentation or '').lower()
@@ -95,7 +94,7 @@ def score_environmental(asset: Asset) -> Dict[str, Any]:
     ssh_pub = boolish(asset.ssh_remote_access)
 
     MAV_i = first_match(
-        (physical_required, 'P'),
+        (exposure == 'physical', 'P'),
         (exposure == 'local' or fw == 'block_internal_external_inbound', 'L'),
         (seg in ('isolated', 'highly_isolated') or vpn_req, 'A'),
         (exposure == 'internal' and (vpn_req or seg == 'highly_isolated'), 'A'),
