@@ -125,10 +125,14 @@ def score_environmental(asset: Asset) -> Dict[str, Any]:
     mac_i = base_mac_i
     pre_i = mac_i
     # ORDER_COMPLEXITY is ['L','H']
+    if (asset.software_patch_level or '').lower() == 'outdated':
+        hardeners = hardeners - 2
+    if (asset.software_patch_level or '').lower() == 'partially_updated':
+        hardeners = hardeners - 1
     if hardeners >= 2:
-        mac_i = step(mac_i, down=1, order=ORDER_COMPLEXITY)
-    if (asset.system_hardening_level or '').lower() == 'not_hardened' or (asset.software_patch_level or '').lower() == 'outdated':
         mac_i = step(mac_i, up=1, order=ORDER_COMPLEXITY)
+    if (asset.system_hardening_level or '').lower() == 'not_hardened':
+        mac_i = step(mac_i, down=1, order=ORDER_COMPLEXITY)
 
     MAC = 'LOW' if mac_i == 'L' else 'HIGH'
     rationale['MAC'] = (
@@ -187,7 +191,7 @@ def score_environmental(asset: Asset) -> Dict[str, Any]:
     user_aw = (asset.user_awareness_level or '').lower()
 
     MUI = _MUI_TO_STR.get("X", 'NOT_DEFINED')
-    rationale['MUI'] =  "There is no enough evidence for UI."
+    rationale['MUI'] =  "There is insufficient evidence for UI."
     confidence['MUI'] = _conf(low=True)
 
     # -------------------------
