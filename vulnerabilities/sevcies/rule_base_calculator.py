@@ -103,7 +103,7 @@ def score_environmental(asset: Asset) -> Dict[str, Any]:
     )
     MAV = _MAV_TO_STR.get(MAV_i, 'NOT_DEFINED')
     rationale['MAV'] = (
-        f"Derived from reachability and controls: physical_required={physical_required}, "
+        f"Derived from reachability and controls: physical_required={'yes' if exposure == 'physical' else 'no'}, "
         f"exposure={exposure}, firewall={fw}, segmentation={seg}, vpn_required={vpn_req}, ssh_remote_access={ssh_pub}."
     )
     confidence['MAV'] = _conf(high=True)
