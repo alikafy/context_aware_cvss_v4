@@ -27,6 +27,7 @@ from vulnerabilities.type import metrics_abbreviation, BaseMetric
 
 # Internal step helpers (use simple ordered ladders for heuristics)
 ORDER_IMPACT = ['L', 'M', 'H']          # internal: for MVC/MVI/MVA & subsequent
+ORDER_IMPACT_SUB = ['N', 'L', 'H', 'S']          # internal: for MSC/MSI/MSA
 ORDER_COMPLEXITY = ['L', 'H']           # CVSS v4 MAC has only LOW/HIGH
 ORDER_PR = ['N', 'L', 'H']              # internal ordering for MPR
 
@@ -73,12 +74,12 @@ _MUI_TO_STR = {'N':'NONE','P':'PASSIVE','A':'ACTIVE','X':'NOT_DEFINED'}
 def _impact_internal_to_env(v: str) -> str:
     # For MVC/MVI/MVA allowed: NONE/LOW/HIGH
     # Map internal 'L'->LOW, 'M'->LOW (coerce medium down), 'H'->HIGH, 'X'->NOT_DEFINED
-    return {'L':'LOW','M':'LOW','H':'HIGH','N':'NONE','X':'NOT_DEFINED'}.get(v, 'NOT_DEFINED')
+    return {'L':'NONE','M':'LOW','H':'HIGH','N':'NONE','X':'NOT_DEFINED'}.get(v, 'NOT_DEFINED')
 
 def _subseq_internal_to_env(v: str) -> str:
     # For MSC/MSI/MSA allowed: LOW/NEGLIGIBLE/HIGH (plus SAFETY/NOT_DEFINED)
     # Use 'L'->LOW, 'M'->NEGLIGIBLE, 'H'->HIGH
-    return {'L':'LOW','M':'NEGLIGIBLE','H':'HIGH','X':'NOT_DEFINED'}.get(v, 'NOT_DEFINED')
+    return {'N':'NEGLIGIBLE', 'L':'LOW','M':'LOW','H':'HIGH', 'S':'SAFETY', 'X':'NOT_DEFINED'}.get(v, 'NOT_DEFINED')
 
 def score_environmental(asset: Asset) -> Dict[str, Any]:
     rationale, confidence = {}, {}
@@ -258,17 +259,17 @@ def score_environmental(asset: Asset) -> Dict[str, Any]:
     conn_sec = (asset.connection_security_controls or '').lower()
     net_isol = net_conn == 'isolated'
 
-    def adjust_sub(v):
+    def adjust_sub(v, order):
         out = v
         if dep == 'high' or conn_crit == 'high':
-            out = step(out, up=1, order=ORDER_IMPACT)
+            out = step(out, up=1, order=order)
         if conn_sec == 'strong' or net_isol:
-            out = step(out, down=1, order=ORDER_IMPACT)
+            out = step(out, down=1, order=order)
         return out
 
-    MSC_i = adjust_sub(base_sub_i)
-    MSI_i = adjust_sub(base_sub_i)
-    MSA_i = adjust_sub(base_sub_i)
+    MSC_i = adjust_sub(base_sub_i, ORDER_IMPACT)
+    MSI_i = adjust_sub(base_sub_i, ORDER_IMPACT_SUB)
+    MSA_i = adjust_sub(base_sub_i, ORDER_IMPACT_SUB)
 
     # Map to allowed sets (no SAFETY inferred here due to lack of input signal)
     sub_metric = {
