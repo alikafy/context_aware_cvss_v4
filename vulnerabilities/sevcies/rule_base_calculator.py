@@ -186,18 +186,8 @@ def score_environmental(asset: Asset) -> Dict[str, Any]:
     tp = (asset.tp or '').lower()
     user_aw = (asset.user_awareness_level or '').lower()
 
-    if tp in ('webserver', 'database', 'security_tools'):
-        MUI_i = 'N'
-        reason = "Back-end/service context rarely requires user interaction."
-    else:
-        if user_aw == 'low' and MAV in ('NETWORK', 'ADJACENT'):
-            MUI_i = 'P'   # passive (visit/open/click)
-            reason = "Likely passive UI in user-facing application with low awareness."
-        else:
-            MUI_i = 'N'
-            reason = "No explicit user-step inferred."
-    MUI = _MUI_TO_STR.get(MUI_i, 'NOT_DEFINED')
-    rationale['MUI'] = f"{reason} (tp={tp}, user_awareness_level={user_aw}, MAV={MAV})."
+    MUI = _MUI_TO_STR.get("X", 'NOT_DEFINED')
+    rationale['MUI'] =  "There is no enough evidence for UI."
     confidence['MUI'] = _conf(low=True)
 
     # -------------------------
