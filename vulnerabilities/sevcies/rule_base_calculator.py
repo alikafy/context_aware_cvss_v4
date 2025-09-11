@@ -288,6 +288,7 @@ def score_environmental(asset: Asset) -> Dict[str, Any]:
     confidence['MSC'] = _conf(med=True)
     confidence['MSI'] = _conf(med=True)
     confidence['MSA'] = _conf(med=True)
+    new_response = compute_env_modified_from_asset(asset)
 
     metrics = {
         'MAV': convert_to_abbreviations(MAV), 'MAC': convert_to_abbreviations(MAC), 'MAT': convert_to_abbreviations(MAT), 'MPR': convert_to_abbreviations(MPR), 'MUI': convert_to_abbreviations(MUI),
@@ -295,6 +296,9 @@ def score_environmental(asset: Asset) -> Dict[str, Any]:
     }
     metrics.update(sub_metric)
 
+    metrics.update(new_response['metrics'])
+    rationale.update(new_response['rationale'])
+    # confidence.update(new_response['confidence'])
     return {
         'metrics': metrics,
         'rationale': rationale,
@@ -351,3 +355,300 @@ def prepare_rule_base_for_calculator(answer: dict, asset: Asset, base_metric: Ba
         "AR": metrics_abbreviation[asset.security_requirements_availability.upper()]
     }
     return {**base, **env, **req}
+# utils/cvss_env_modified.py
+
+from typing import Dict, List, Tuple, Literal
+
+# Output types
+LevelVuln = Literal["H", "L", "N"]           # MVC/MVI/MVA
+LevelSubC = Literal["H", "L", "N"]           # MSC (N = Negligible)
+LevelSubIA = Literal["S", "H", "L", "N"]     # MSI/MSA (Safety + H/L/N)
+
+def _cap_0_100(x: int) -> int:
+    return max(0, min(100, x))
+
+def _bucket_vuln(score: int) -> LevelVuln:
+    # vulnerable system: H/L/None
+    if score >= 70: return "H"
+    if score >= 35: return "L"
+    return "N"
+
+def _bucket_sub(score: int) -> LevelSubC:
+    # subsequent confidentiality: H/L/Negligible
+    if score >= 70: return "H"
+    if score >= 35: return "L"
+    return "N"
+
+def _fmt(label: str, value: str, delta: int) -> str:
+    sgn = "+" if delta >= 0 else "-"
+    return f"{label}={value} ({sgn}{abs(delta)})"
+
+def compute_env_modified_from_asset(asset) -> Dict:
+    """
+    Compute CVSS v4 Environmental Modified Impact metrics from a Django Asset instance.
+
+    Returns:
+        {
+          'metrics': {'MVC','MVI','MVA','MSC','MSI','MSA'},
+          'rationale': {'MVC': str, ...},
+          'confidence': 'High'|'Medium'|'Low'
+        }
+    """
+    # --------- pull fields (already normalized by your model choices)
+    sr_c = getattr(asset, "security_requirements_confidentiality", "")
+    sr_i = getattr(asset, "security_requirements_integrity", "")
+    sr_a = getattr(asset, "security_requirements_availability", "")
+
+    asset_crit = getattr(asset, "asset_criticality", "")
+    data_sens = getattr(asset, "data_sensitivity", "")
+    enc = getattr(asset, "encryption_protection_level", "")
+    red = getattr(asset, "availability_redundancy", "")
+
+    dep = getattr(asset, "asset_dependency_level", "")
+    conn_crit = getattr(asset, "connected_systems_criticality", "")
+    net_conn = getattr(asset, "network_connectivity", "")
+    cascade = getattr(asset, "cascading_impact_potential", "")
+    conn_ctrls = getattr(asset, "connection_security_controls", "")
+
+    # extra environment/controls (used mainly for subsequent impacts)
+    exposure = getattr(asset, "exposure_level", "")
+    seg = getattr(asset, "network_segmentation", "")
+    fw_cfg = getattr(asset, "firewall_configuration", "")
+    vpn = getattr(asset, "vpn_access", "")
+    ssh = getattr(asset, "ssh_remote_access", "")
+
+    waf = getattr(asset, "security_controls_waf", "")
+    fw = getattr(asset, "security_controls_firewall", "")
+    ids = getattr(asset, "security_controls_ids", "")
+    ips = getattr(asset, "security_controls_ips", "")
+    edr = getattr(asset, "security_controls_edr", "")
+
+    harden = getattr(asset, "system_hardening_level", "")
+    patch = getattr(asset, "software_patch_level", "")
+    nac = getattr(asset, "network_access_complexity", "")
+    auth = getattr(asset, "authentication_requirement", "")
+    acs = getattr(asset, "access_control_strength", "")
+    priv_esc = getattr(asset, "privilege_escalation_protection", "")
+    user_awareness = getattr(asset, "user_awareness_level", "")
+    tp = getattr(asset, "tp", "")
+
+    # --------- weights (tune here – simple/transparent)
+    SR_W = {"high": 45, "medium": 25, "low": 10, "not_defined": 0, "": 0}
+    ASSET_CRIT_W = {"high": 20, "medium": 10, "low": 0, "": 0}
+
+    DATA_C_W = {"highly_sensitive": 30, "operationally_critical": 10, "non_sensitive": 0, "": 0}
+    DATA_I_W = {"highly_sensitive": 12, "operationally_critical": 18, "non_sensitive": 0, "": 0}
+    DATA_A_W = {"highly_sensitive": 10, "operationally_critical": 22, "non_sensitive": 0, "": 0}
+
+    ENC_C_W = {"strong": -25, "moderate": -10, "weak": 0, "": 0}
+    ENC_I_W = {"strong": -10, "moderate": -5, "weak": 0, "": 0}
+    AVAIL_RED_W = {"high": -25, "moderate": -10, "low": 0, "": 0}
+
+    DEP_W = {"high": 15, "medium": 8, "low": 0, "": 0}
+    CONN_CRIT_W = {"high": 25, "medium": 12, "low": 0, "": 0}
+    CASCADE_W = {"high": 30, "medium": 15, "low": 0, "": 0}
+    NET_CONN_W = {"direct_access": 15, "indirect_access": 8, "isolated": 0, "": 0}
+    CONN_CTRL_W = {"strong": -20, "moderate": -10, "weak": 0, "": 0}
+
+    # Additional containment/exposure signals (mainly for subsequent propagation)
+    EXPOSURE_W = {"external": 15, "internal": 8, "local": 2, "physical": 0, "": 0}
+    SEG_W = {"none": 12, "isolated": 5, "highly_isolated": 0, "": 0}
+    FW_CFG_W = {
+        "allow_external_inbound": 12,
+        "block_external_allow_internal_only": 6,
+        "block_internal_external_inbound": 0,
+        "": 0,
+    }
+    VPN_W = {"not_required": 5, "required": 0, "": 0}
+    SSH_W = {"true": 5, "false": 0, "": 0}
+
+    # Technical mitigations (small nudges; primarily affect subsequent)
+    CTRL_PRESENT_MINUS = {"present": -4, "absent": 0, "": 0}
+    HARDEN_W = {"fully_hardened": -6, "partially_hardened": -3, "not_hardened": 0, "": 0}
+    PATCH_W = {"up_to_date": -4, "partially_updated": -2, "outdated": 0, "": 0}
+    NAC_W = {"multiple_steps": -5, "moderate_steps": -2, "direct_access": 0, "": 0}
+    AUTH_W = {"multi_factor": -8, "single_factor": -3, "none": 0, "": 0}
+    ACS_W = {"strong": -8, "moderate": -4, "weak": 0, "": 0}
+    PRIV_ESC_W = {"present": -8, "absent": 0, "": 0}
+    AWARE_W = {"high": -2, "low": 0, "": 0}
+
+    # --------- VULNERABLE SYSTEM (MVC/MVI/MVA)
+
+    def _score_vc() -> Tuple[int, List[str]]:
+        parts: List[str] = []
+        s = 0
+        d = SR_W[sr_c]; s += d; parts.append(_fmt("security_requirements_confidentiality", sr_c, d))
+        d = ASSET_CRIT_W[asset_crit]; s += d; parts.append(_fmt("asset_criticality", asset_crit, d))
+        d = DATA_C_W[data_sens]; s += d; parts.append(_fmt("data_sensitivity", data_sens, d))
+        d = ENC_C_W[enc]; s += d; parts.append(_fmt("encryption_protection_level", enc, d))
+        # minor mitigations
+        d = AUTH_W.get(auth, 0); s += d; parts.append(_fmt("authentication_requirement", auth, d))
+        d = ACS_W.get(acs, 0); s += d; parts.append(_fmt("access_control_strength", acs, d))
+        d = HARDEN_W.get(harden, 0); s += d; parts.append(_fmt("system_hardening_level", harden, d))
+        d = PATCH_W.get(patch, 0); s += d; parts.append(_fmt("software_patch_level", patch, d))
+        return _cap_0_100(s), parts
+
+    def _score_vi() -> Tuple[int, List[str]]:
+        parts: List[str] = []
+        s = 0
+        d = SR_W[sr_i]; s += d; parts.append(_fmt("security_requirements_integrity", sr_i, d))
+        d = ASSET_CRIT_W[asset_crit]; s += d; parts.append(_fmt("asset_criticality", asset_crit, d))
+        d = DATA_I_W[data_sens]; s += d; parts.append(_fmt("data_sensitivity", data_sens, d))
+        d = ENC_I_W[enc]; s += d; parts.append(_fmt("encryption_protection_level", enc, d))
+        # integrity-specific mitigations
+        d = PRIV_ESC_W.get(priv_esc, 0); s += d; parts.append(_fmt("privilege_escalation_protection", priv_esc, d))
+        d = AUTH_W.get(auth, 0); s += d; parts.append(_fmt("authentication_requirement", auth, d))
+        d = ACS_W.get(acs, 0); s += d; parts.append(_fmt("access_control_strength", acs, d))
+        d = HARDEN_W.get(harden, 0); s += d; parts.append(_fmt("system_hardening_level", harden, d))
+        d = PATCH_W.get(patch, 0); s += d; parts.append(_fmt("software_patch_level", patch, d))
+        return _cap_0_100(s), parts
+
+    def _score_va() -> Tuple[int, List[str]]:
+        parts: List[str] = []
+        s = 0
+        d = SR_W[sr_a]; s += d; parts.append(_fmt("security_requirements_availability", sr_a, d))
+        d = ASSET_CRIT_W[asset_crit]; s += d; parts.append(_fmt("asset_criticality", asset_crit, d))
+        d = DATA_A_W[data_sens]; s += d; parts.append(_fmt("data_sensitivity", data_sens, d))
+        d = AVAIL_RED_W[red]; s += d; parts.append(_fmt("availability_redundancy", red, d))
+        d = DEP_W[dep]; s += d; parts.append(_fmt("asset_dependency_level", dep, d))
+        # small hygiene effects
+        d = HARDEN_W.get(harden, 0); s += d; parts.append(_fmt("system_hardening_level", harden, d))
+        d = PATCH_W.get(patch, 0); s += d; parts.append(_fmt("software_patch_level", patch, d))
+        return _cap_0_100(s), parts
+
+    # --------- SUBSEQUENT SYSTEM (MSC/MSI/MSA)
+
+    def _base_sub_with_env() -> Tuple[int, List[str]]:
+        """Connectivity/propagation base + environment/controls."""
+        parts: List[str] = []
+        s = 0
+        # core propagation
+        d = CONN_CRIT_W[conn_crit]; s += d; parts.append(_fmt("connected_systems_criticality", conn_rit if (conn_rit:=conn_crit) else conn_crit, d))
+        d = DEP_W[dep]; s += d; parts.append(_fmt("asset_dependency_level", dep, d))
+        d = CASCADE_W[cascade]; s += d; parts.append(_fmt("cascading_impact_potential", cascade, d))
+        d = NET_CONN_W[net_conn]; s += d; parts.append(_fmt("network_connectivity", net_conn, d))
+        d = CONN_CTRL_W[conn_ctrls]; s += d; parts.append(_fmt("connection_security_controls", conn_ctrls, d))
+
+        # reachability amplifiers
+        d = EXPOSURE_W[exposure]; s += d; parts.append(_fmt("exposure_level", exposure, d))
+        d = SEG_W[seg]; s += d; parts.append(_fmt("network_segmentation", seg, d))
+        d = FW_CFG_W[fw_cfg]; s += d; parts.append(_fmt("firewall_configuration", fw_cfg, d))
+        d = VPN_W[vpn]; s += d; parts.append(_fmt("vpn_access", vpn, d))
+        d = SSH_W[ssh]; s += d; parts.append(_fmt("ssh_remote_access", ssh, d))
+
+        # generic mitigations (small reductions)
+        d = CTRL_PRESENT_MINUS[waf]; s += d; parts.append(_fmt("security_controls_waf", waf, d))
+        d = CTRL_PRESENT_MINUS[fw]; s += d; parts.append(_fmt("security_controls_firewall", fw, d))
+        d = CTRL_PRESENT_MINUS[ids]; s += d; parts.append(_fmt("security_controls_ids", ids, d))
+        d = CTRL_PRESENT_MINUS[ips]; s += d; parts.append(_fmt("security_controls_ips", ips, d))
+        d = CTRL_PRESENT_MINUS[edr]; s += d; parts.append(_fmt("security_controls_edr", edr, d))
+        d = HARDEN_W.get(harden, 0); s += d; parts.append(_fmt("system_hardening_level", harden, d))
+        d = NAC_W.get(nac, 0); s += d; parts.append(_fmt("network_access_complexity", nac, d))
+        d = AWARE_W.get(user_awareness, 0); s += d; parts.append(_fmt("user_awareness_level", user_awareness, d))
+
+        return _cap_0_100(s), parts
+
+    def _score_sc() -> Tuple[int, List[str]]:
+        base, parts = _base_sub_with_env()
+        extra = 15 if data_sens == "highly_sensitive" else 0
+        if extra:
+            parts.append(_fmt("data_sensitivity→confidentiality_propagation", data_sens, extra))
+        return _cap_0_100(base + extra), parts
+
+    def _score_si() -> Tuple[int, List[str]]:
+        base, parts = _base_sub_with_env()
+        extra = 12 if data_sens == "operationally_critical" else 0
+        if extra:
+            parts.append(_fmt("data_sensitivity→integrity_propagation", data_sens, extra))
+        return _cap_0_100(base + extra), parts
+
+    def _score_sa() -> Tuple[int, List[str]]:
+        base, parts = _base_sub_with_env()
+        extra = 15 if data_sens == "operationally_critical" else 0
+        if extra:
+            parts.append(_fmt("data_sensitivity→availability_propagation", data_sens, extra))
+        return _cap_0_100(base + extra), parts
+
+    # Safety signal (lets MSI/MSA become 'S')
+    def _score_safety() -> Tuple[int, List[str]]:
+        s, parts = 0, []
+        # operationally critical processes + strong propagation signals imply safety concerns
+        d = 30 if data_sens == "operationally_critical" else 0; s += d; parts.append(_fmt("data_sensitivity", data_sens, d))
+        d = 20 if asset_crit == "high" else 10 if asset_crit == "medium" else 0; s += d; parts.append(_fmt("asset_criticality", asset_crit, d))
+        d = 25 if conn_crit == "high" else 12 if conn_crit == "medium" else 0; s += d; parts.append(_fmt("connected_systems_criticality", conn_crit, d))
+        d = 25 if cascade == "high" else 12 if cascade == "medium" else 0; s += d; parts.append(_fmt("cascading_impact_potential", cascade, d))
+        d = 15 if dep == "high" else 8 if dep == "medium" else 0; s += d; parts.append(_fmt("asset_dependency_level", dep, d))
+        d = 10 if net_conn == "direct_access" else 5 if net_conn == "indirect_access" else 0; s += d; parts.append(_fmt("network_connectivity", net_conn, d))
+        # exposure/seg/fw that increase external reachability
+        d = 10 if exposure == "external" else 5 if exposure == "internal" else 0; s += d; parts.append(_fmt("exposure_level", exposure, d))
+        d = 10 if seg == "none" else 5 if seg == "isolated" else 0; s += d; parts.append(_fmt("network_segmentation", seg, d))
+        d = 10 if fw_cfg == "allow_external_inbound" else 5 if fw_cfg == "block_external_allow_internal_only" else 0; s += d; parts.append(_fmt("firewall_configuration", fw_cfg, d))
+        return _cap_0_100(s), parts
+
+    # ---- compute scores
+    vc_score, vc_parts = _score_vc()
+    vi_score, vi_parts = _score_vi()
+    va_score, va_parts = _score_va()
+
+    sc_score, sc_parts = _score_sc()
+    si_score, si_parts = _score_si()
+    sa_score, sa_parts = _score_sa()
+
+    safety_score, safety_parts = _score_safety()
+
+    MVC = _bucket_vuln(vc_score)
+    MVI = _bucket_vuln(vi_score)
+    MVA = _bucket_vuln(va_score)
+
+    MSC = _bucket_sub(sc_score)
+
+    def _apply_safety(s_score: int, fallback: LevelSubC) -> LevelSubIA:
+        return "S" if s_score >= 60 else fallback
+
+    MSI = _apply_safety(safety_score, _bucket_sub(si_score))
+    MSA = _apply_safety(safety_score, _bucket_sub(sa_score))
+
+    # ----- rationale text
+    def _explain_vuln(name: str, score: int, parts: List[str], val: str) -> str:
+        label = {"H": "High (H)", "L": "Low (L)", "N": "None (N)"}[val]
+        return f"Value: {val}\nRationale: {'; '.join(parts)} → score={score} → {label}."
+
+    def _explain_sub_c(name: str, score: int, parts: List[str], val: str) -> str:
+        label = {"H": "High (H)", "L": "Low (L)", "N": "Negligible (N)"}[val]
+        return f"Value: {val}\nRationale: {'; '.join(parts)} → score={score} → {label}."
+
+    def _explain_sub_ia(name: str, base_score: int, base_parts: List[str], val: str) -> str:
+        if val == "S":
+            return f"Value: S\nRationale: Safety conditions triggered — {'; '.join(safety_parts)} → safety_score={safety_score} ≥ 60 → Safety (S)."
+        label = {"H": "High (H)", "L": "Low (L)", "N": "Negligible (N)"}[val]
+        return f"Value: {val}\nRationale: {'; '.join(base_parts)} → score={base_score} → {label}."
+
+    rationale = {
+        "MVC": _explain_vuln("MVC", vc_score, vc_parts, MVC),
+        "MVI": _explain_vuln("MVI", vi_score, vi_parts, MVI),
+        "MVA": _explain_vuln("MVA", va_score, va_parts, MVA),
+        "MSC": _explain_sub_c("MSC", sc_score, sc_parts, MSC),
+        "MSI": _explain_sub_ia("MSI", si_score, si_parts, MSI),
+        "MSA": _explain_sub_ia("MSA", sa_score, sa_parts, MSA),
+    }
+
+    metrics = {"MVC": MVC, "MVI": MVI, "MVA": MVA, "MSC": MSC, "MSI": MSI, "MSA": MSA}
+
+    # Confidence: % of key fields filled (simple heuristic)
+    expected = [
+        "security_requirements_confidentiality","security_requirements_integrity","security_requirements_availability",
+        "asset_criticality","data_sensitivity","encryption_protection_level","availability_redundancy",
+        "asset_dependency_level","connected_systems_criticality","network_connectivity",
+        "cascading_impact_potential","connection_security_controls",
+        "exposure_level","network_segmentation","firewall_configuration","vpn_access","ssh_remote_access",
+        "security_controls_waf","security_controls_firewall","security_controls_ids","security_controls_ips","security_controls_edr",
+    ]
+    filled = sum(1 for f in expected if getattr(asset, f, "") not in ("", None))
+    cov = filled / len(expected)
+    confidence = "High" if cov >= 0.8 else "Medium" if cov >= 0.5 else "Low"
+
+    return {
+        "metrics": metrics,
+        "rationale": rationale,
+        "confidence": confidence,
+    }
