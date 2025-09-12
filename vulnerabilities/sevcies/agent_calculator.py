@@ -371,7 +371,8 @@ class PromptCreator:
         return f"""
                 ### ROLE
                 You are a careful security analyst applying CVSS v4 Environmental metrics.  
-                Use the provided CVE text and descriptions.  
+                You are a careful expert for classify Modified Base metrics for given Asset.
+                Use the provided CVE information(descriptions, Base_score, Vuln_status, Weakness, BASE METRIC VALUES) and Asset Context.
                 
                 ### 1. INPUT - Vulnerability Details
                 CVE_ID: {self.vuln.id}
@@ -799,11 +800,11 @@ class PromptCreator:
                   - `modified_metrics`: dictionary with {{MSI: abbreviation, MSA: abbreviation, MSC: abbreviation}}.  
                   - `rationale`: dictionary with {{MSI: explain completely, MSA: explain completely, MSC: explain completely}}.  
                   - `confidence`: dictionary with {{MSI: High|Medium|Low, MSA: High|Medium|Low, MSC: High|Medium|Low}}.
-                  - `possible values for MSI`: Low(L), High(H), Negligible(N), Not Defined(X)   
-                  - `possible values for MSA`: Safety(S), Low(L), High(H), Negligible(N), Not Defined(X)   
-                  - `possible values for MSC`: Safety(S), Low(L), High(H), Negligible(N), Not Defined(X)   
+                  - `possible values for MSI`: High(H), Low(L), Negligible(N), Not Defined(X)   
+                  - `possible values for MSA`: Safety(S), High(H), Low(L), Negligible(N), Not Defined(X)   
+                  - `possible values for MSC`: Safety(S), High(H), Low(L), Negligible(N), Not Defined(X)   
                 - For `modified_metrics`, **use only abbreviations**. Never use full words or any other thing.  
-                - If evidence is uncertain, set Not Defined.
+                - If evidence is uncertain, set Not Defined(X).
                 - Descriptions for Modified Base Metrics are the same as their Base Metrics.  
                 
                 ### OUTPUT FORMAT EXAMPLE
