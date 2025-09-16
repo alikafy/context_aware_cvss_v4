@@ -41,9 +41,6 @@ class APITest(APITestCase):
             name="Elber",
             version='5.9.0',
             is_active=True,
-            security_requirements_confidentiality='high',
-            security_requirements_integrity='high',
-            security_requirements_availability='high',
         )
         cve_id = "CVE-2025-0674"
         url = f"/api/vuln/fetch-cve/{cve_id}/"

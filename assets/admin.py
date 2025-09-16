@@ -3,77 +3,79 @@ from .models import Asset
 
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
+    """
+    Custom admin interface for the Asset model.
+    Organizes the extensive fields into logical groups for better usability.
+    """
+
+    # --- List View Configuration ---
     list_display = (
-        "id", "name", "version", "tp", "exposure_level",
-        "network_segmentation", "firewall_configuration",
-        "vpn_access", "is_active",
+        'name',
+        'version',
+        'tp',
+        'asset_criticality',
+        'network_accessibility',
+        'is_active',
+        'updated_at',
     )
     list_filter = (
-        "tp",
-        "exposure_level",
-        "network_segmentation",
-        "firewall_configuration",
-        "vpn_access",
-        "system_hardening_level",
-        "software_patch_level",
-        "authentication_requirement",
-        "asset_criticality",
-        "data_sensitivity",
-        "encryption_protection_level",
-        "availability_redundancy",
-        "asset_dependency_level",
-        "connected_systems_criticality",
-        "network_connectivity",
-        "cascading_impact_potential",
-        "connection_security_controls",
-        "is_active",
+        'is_active',
+        'tp',
+        'asset_criticality',
+        'network_accessibility',
+        'system_hardening_level',
     )
-    search_fields = ("name", "version")
-    ordering = ("name", "tp")
-    list_per_page = 50
-    list_editable = ("is_active",)
+    search_fields = ('name', 'version')
 
+    # --- Form View Configuration ---
     fieldsets = (
-        ("Basic Info", {
-            "fields": ("name", "version", "tp", "is_active")
-        }),
-        ("Exposure & Network", {
-            "fields": (
-                "exposure_level", "network_segmentation", "firewall_configuration",
-                "vpn_access", "ssh_remote_access",
+        ('Core Identification', {
+            'fields': (
+                ('name', 'version'),
+                ('tp', 'is_active'),
             )
         }),
-        ("Security Controls", {
-            "fields": (
-                "network_access_complexity",
-                "security_controls_waf", "security_controls_firewall",
-                "security_controls_ids", "security_controls_ips",
-                "security_controls_edr", "system_hardening_level",
-                "software_patch_level", "privilege_escalation_protection",
+        ('Business Context', {
+            'fields': (
+                ('asset_criticality', 'data_sensitivity'),
             )
         }),
-        ("Auth & Access", {
-            "fields": (
-                "authentication_requirement",
-                "user_privilege_level_required",
-                "access_control_strength",
-                "user_awareness_level",
+        ('Security Requirements (Asset)', {
+            'fields': (
+                ('security_requirement_confidentiality', 'security_requirement_integrity', 'security_requirement_availability'),
             )
         }),
-        ("Requirements (CIA)", {
-            "fields": (
-                "security_requirements_confidentiality",
-                "security_requirements_integrity",
-                "security_requirements_availability",
+        ('Network & Access Posture', {
+            'fields': ('network_accessibility', 'remote_management_access')
+        }),
+        ('System Configuration & Hardening', {
+            'fields': (
+                'system_hardening_level',
+                'software_patch_level',
+                ('availability_redundancy', 'data_encryption_level'),
             )
         }),
-        ("Risk & Dependencies", {
-            "fields": (
-                "asset_criticality", "data_sensitivity",
-                "encryption_protection_level", "availability_redundancy",
-                "asset_dependency_level", "connected_systems_criticality",
-                "network_connectivity", "cascading_impact_potential",
-                "connection_security_controls",
+        ('Compensating Security Controls', {
+            'fields': (
+                'network_protection',
+                'endpoint_protection',
+                'integrity_protection_level',
+                'privilege_escalation_protection',
             )
+        }),
+        ('User & Authentication Context', {
+            'fields': ('authentication_strength', 'user_awareness_level')
+        }),
+        ('Downstream Impact (Subsequent Systems)', {
+            'fields': (
+                'propagation_risk',
+                ('subsequent_system_confidentiality_req', 'subsequent_system_integrity_req', 'subsequent_system_availability_req'),
+            )
+        }),
+        ('Timestamps', {
+            'classes': ('collapse',),
+            'fields': ('created_at', 'updated_at')
         }),
     )
+
+    readonly_fields = ('created_at', 'updated_at')
