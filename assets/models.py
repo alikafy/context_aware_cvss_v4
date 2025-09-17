@@ -68,14 +68,14 @@ class CriticalityChoices(models.TextChoices):
     LOW = 'Low', 'Low: Non-essential asset, minimal operational impact'
     MEDIUM = 'Medium', 'Medium: Supports important business functions'
     HIGH = 'High', 'High: Supports critical business functions'
-    MISSION_CRITICAL = 'Mission-Critical', 'Mission-Critical: Core to business survival'
+    MISSION_CRITICAL = 'Mission_Critical', 'Mission-Critical: Core to business survival'
 
 
 class DataSensitivityChoices(models.TextChoices):
     NONE = 'None', 'Public or non-sensitive data'
     INTERNAL = 'Internal', 'Internal use only; minor harm if disclosed'
     CONFIDENTIAL = 'Confidential', 'Sensitive data (e.g., PII); significant harm if disclosed'
-    RESTRICTED = 'Highly-Restricted', 'Regulated data; severe harm if disclosed'
+    RESTRICTED = 'Highly_Restricted', 'Regulated data; severe harm if disclosed'
 
 
 class RedundancyChoices(models.TextChoices):
