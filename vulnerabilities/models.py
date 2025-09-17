@@ -58,3 +58,36 @@ class Response(models.Model):
 
     def __str__(self):
         return f"{self.impacted_asset.name} - {self.vulnerability.cve_id}"
+
+
+class APICallLog(models.Model):
+    METHOD_CHOICES = [
+        ("GET", "GET"),
+        ("POST", "POST"),
+        ("PUT", "PUT"),
+        ("PATCH", "PATCH"),
+        ("DELETE", "DELETE"),
+    ]
+
+    endpoint = models.URLField(max_length=500, help_text="Full URL of the API endpoint")
+    method = models.CharField(max_length=10, choices=METHOD_CHOICES)
+    request_headers = models.JSONField(blank=True, null=True)
+    request_body = models.TextField(blank=True, null=True)
+
+    response_status = models.PositiveIntegerField(blank=True, null=True)
+    response_headers = models.JSONField(blank=True, null=True)
+    response_body = models.TextField(blank=True, null=True)
+
+    error_message = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"[{self.method}] {self.endpoint} ({self.response_status})"
+
+    @property
+    def short_endpoint(self):
+        return (self.endpoint[:90] + "…") if len(self.endpoint) > 90 else self.endpoint

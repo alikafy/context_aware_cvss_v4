@@ -76,3 +76,107 @@ class ResponseAdmin(admin.ModelAdmin):
     raw_id_fields = ("vulnerability", "impacted_asset")
     readonly_fields = ("agent_severity", "rule_severity")
     list_select_related = ("vulnerability", "impacted_asset")
+
+
+# logs/admin.py
+import csv
+import json
+from django.contrib import admin
+from django.http import HttpResponse
+from .models import APICallLog
+
+
+@admin.register(APICallLog)
+class APICallLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "created_at",
+        "method",
+        "response_status",
+        "short_endpoint",
+        "has_error",
+    )
+    list_filter = (
+        "method",
+        "response_status",
+        ("created_at", admin.DateFieldListFilter),
+    )
+    search_fields = (
+        "endpoint",
+        "request_body",
+        "response_body",
+        "error_message",
+    )
+    readonly_fields = (
+        "created_at",
+        "endpoint",
+        "method",
+        "request_headers",
+        "request_body",
+        "response_status",
+        "response_headers",
+        "response_body",
+        "error_message",
+    )
+    date_hierarchy = "created_at"
+    ordering = ("-created_at",)
+    actions = ["export_as_json", "export_as_csv"]
+
+    fieldsets = (
+        ("Request", {
+            "fields": ("created_at", "method", "endpoint", "request_headers", "request_body"),
+        }),
+        ("Response", {
+            "fields": ("response_status", "response_headers", "response_body"),
+        }),
+        ("Error", {
+            "fields": ("error_message",),
+        }),
+    )
+
+    @admin.display(boolean=True, description="Error?")
+    def has_error(self, obj: APICallLog):
+        return bool(obj.error_message)
+
+    def export_as_json(self, request, queryset):
+        data = []
+        for obj in queryset:
+            data.append({
+                "id": obj.id,
+                "created_at": obj.created_at.isoformat(),
+                "endpoint": obj.endpoint,
+                "method": obj.method,
+                "request_headers": obj.request_headers,
+                "request_body": obj.request_body,
+                "response_status": obj.response_status,
+                "response_headers": obj.response_headers,
+                "response_body": obj.response_body,
+                "error_message": obj.error_message,
+            })
+        resp = HttpResponse(json.dumps(data, ensure_ascii=False, indent=2), content_type="application/json")
+        resp["Content-Disposition"] = 'attachment; filename="api_call_logs.json"'
+        return resp
+    export_as_json.short_description = "Export selected logs as JSON"
+
+    def export_as_csv(self, request, queryset):
+        resp = HttpResponse(content_type="text/csv")
+        resp["Content-Disposition"] = 'attachment; filename="api_call_logs.csv"'
+        writer = csv.writer(resp)
+        writer.writerow([
+            "id","created_at","endpoint","method","response_status","error_message",
+            "request_headers","request_body","response_headers","response_body",
+        ])
+        for obj in queryset:
+            writer.writerow([
+                obj.id,
+                obj.created_at.isoformat(),
+                obj.endpoint,
+                obj.method,
+                obj.response_status,
+                (obj.error_message or "")[:5000],
+                json.dumps(obj.request_headers, ensure_ascii=False) if obj.request_headers else "",
+                (obj.request_body or "")[:500000],
+                json.dumps(obj.response_headers, ensure_ascii=False) if obj.response_headers else "",
+                (obj.response_body or "")[:500000],
+            ])
+        return resp
+    export_as_csv.short_description = "Export selected logs as CSV"

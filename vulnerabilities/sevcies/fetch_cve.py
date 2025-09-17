@@ -1,7 +1,11 @@
+import json
+
 import requests
 
 from vulnerabilities.exceptions import FetchCVEAPIError, CWEFetchError
 from bs4 import BeautifulSoup
+
+from vulnerabilities.models import APICallLog
 
 
 class FetchCVEService:
@@ -12,12 +16,29 @@ class FetchCVEService:
         url = "https://services.nvd.nist.gov/rest/json/cves/2.0"
         headers = {"apiKey": api_key} if api_key else {}
         params = {"cveId": self.cve_id}
-        resp = requests.get(url, headers=headers, params=params, timeout=timeout)
-        resp.raise_for_status()
-        data = resp.json()
-        if not data.get("vulnerabilities"):
-            raise FetchCVEAPIError(f"{self.cve_id} not found in NVD.")
-        return data["vulnerabilities"][0]["cve"]
+        log = APICallLog.objects.create(
+            endpoint=url,
+            method="GET",
+            request_headers=headers,
+            request_body=json.dumps(params),
+        )
+        try:
+            resp = requests.get(url, headers=headers, params=params, timeout=timeout)
+            log.response_status = resp.status_code
+            log.response_headers = dict(resp.headers)
+            log.response_body = resp.text
+            resp.raise_for_status()
+            data = resp.json()
+            if not data.get("vulnerabilities"):
+                log.error_message = f"{self.cve_id} not found in NVD."
+                log.save()
+                raise FetchCVEAPIError(f"{self.cve_id} not found in NVD.")
+            log.save()
+            return data["vulnerabilities"][0]["cve"]
+        except Exception as e:
+            log.error_message = str(e)
+            log.save()
+            raise
 
     def fetch_cve(self):
         response = self.get_cve_record_nvd()
