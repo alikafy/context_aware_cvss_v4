@@ -16,7 +16,7 @@ VALUE_M = "M"
 def calculate_mav(base_av: AV, asset: Asset) -> dict:
     """Calculates the Modified Attack Vector (MAV) from an Asset object."""
     mav = convert_to_abbreviations(base_av.value)
-    rationale = f"Defaulting to base metric AV: {base_av} as no specific context rule was met."
+    rationale = f"Defaulting to base metric AV: {base_av.value} as no specific context rule was met."
     confidence = "High"
 
     # Accessing attributes directly from the object
