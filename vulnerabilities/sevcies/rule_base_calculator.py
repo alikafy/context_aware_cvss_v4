@@ -68,7 +68,7 @@ def calculate_mac(base_ac: AC, asset: Asset) -> dict:
 def calculate_mpr(base_pr: PR, asset: Asset) -> dict:
     """Calculates the Modified Privileges Required (MPR) from an Asset object."""
     mpr = convert_to_abbreviations(base_pr.value)
-    rationale = f"Defaulting to base metric PR: {base_pr} as no specific context rule was met."
+    rationale = f"Defaulting to base metric PR: {base_pr.value} as no specific context rule was met."
     confidence = "High"
 
     if convert_to_abbreviations(base_pr.value) in [VALUE_N, VALUE_L] and asset.authentication_strength == 'Multi_Factor':

@@ -1,8 +1,6 @@
 import json
 from typing import List
 
-from rest_framework.exceptions import APIException, ValidationError
-
 from assets.models import Asset
 from vulnerabilities.models import Vulnerability
 from vulnerabilities.sevcies.ask_agent import make_request
