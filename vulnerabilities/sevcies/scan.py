@@ -1,3 +1,4 @@
+import json
 from typing import List
 
 from rest_framework.exceptions import APIException, ValidationError
@@ -17,7 +18,7 @@ class Scan:
         possible_impacted_assets = self.search_vuln_systems_in_assets(list(set(vul_systems_name)))
         if not possible_impacted_assets:
             return []
-        impacted_ids = self.match_affected_assets(possible_impacted_assets)
+        impacted_ids = self.match_affected_assets(possible_impacted_assets).get('impacted_asset_ids', [])
         assets = self.get_impacted_assets(impacted_ids, possible_impacted_assets)
         return assets
 
@@ -39,33 +40,46 @@ class Scan:
             impacted_assets.extend(assets)
         return impacted_assets
 
-    def match_affected_assets(self, user_assets: list[Asset]) -> list[int]:
-        assets_str = "\n".join(
-            f"- ID: {asset.id}, asset name: {asset.name}, asset version: {asset.version}" for asset in user_assets)
+    def format_assets_as_json(self, user_assets: list[Asset]):
+        asset_list = [
+            {"id": asset.id, "name": asset.name, "version": asset.version}
+            for asset in user_assets
+        ]
+        return json.dumps(asset_list, indent=2)
 
+    def match_affected_assets(self, user_assets: list[Asset]) -> dict:
         prompt = f"""
-                You are an assistant helping assess the impact of a known vulnerability on a user's infrastructure using context-aware analysis.
+ROLE: You are a specialized vulnerability intelligence engine. Your sole function is to identify which assets from a provided list are affected by a given CVE description by performing precise name and version range matching.
+TASK: Analyze the provided CVE Description and User Assets. Based on the critical rules, determine which assets are impacted and return their IDs in a structured JSON format.
 
-                You are given:
-                - A list of user assets (each asset has: ID, name, and version)
-                - A CVE description (which may mention affected product names and versions)
+INPUTS:
+You will be provided with two pieces of information:
 
-                Your task is:
-                1. Extract vulnerable product names and versions from the CVE description.
-                2. Match them against the user's asset list:
-                   - Use **case-insensitive matching**
-                   - Allow **partial string matching** (e.g., "Apache HTTP Server" matches "Apache Web Server")
-                   - Version match is preferred but not strictly required unless the CVE specifies a known affected version range.
-                3. Consider assets impacted if their product name matches a vulnerable product, and their version is equal to or older than the affected version (if version data is given).
-                4. Do not reason beyond the data — just match based on name and version.
+CVE Description: {self.vuln.cve_description}
 
-                Respond with a **numbered list(use []) of only the matching asset IDs** that are likely impacted. If none match, return an empty list.mine return just a list of ID like [1, 2 ,3]
+User Assets: 
+{self.format_assets_as_json(user_assets)}
 
-                User Assets:
-                {assets_str}
+CRITICAL RULES:
 
-                CVE Description:
-                {self.vuln.cve_description}
+Parse CVE First: Meticulously parse the 'CVE Description' to identify the vulnerable product name(s) and all specified version ranges. A single CVE can have multiple distinct ranges (e.g., 'versions before X' and 'versions from Y to Z').
+
+Name Matching: For each asset, perform a case-insensitive match. The asset's name must contain the core product name identified from the CVE (e.g., "Concrete CMS" in the asset name matches the product "Concrete CMS").
+
+Version Range Analysis: If the name matches, you must check if the asset's version falls within any of the vulnerable ranges identified in the CVE.
+
+"versions 9 through 9.3.2" means version >= 9.0.0 AND version <= 9.3.2.
+
+"versions below 8.5.18" means version < 8.5.18.
+
+"versions prior to 9.2" means version < 9.2.
+
+Treat versions lexicographically if needed, but numeric comparison is preferred (e.g., 9.1.1 is less than 9.2).
+
+Strict Adherence: Adhere strictly to the provided text. Do not infer vulnerabilities for products not mentioned or versions outside the specified ranges.
+
+OUTPUT FORMAT:
+Respond with a single, clean JSON object. This object must contain one key, "impacted_asset_ids", which is a JSON array of integers representing the matching asset IDs. If no assets are impacted, the array must be empty. Do not include any other text, explanations, or markdown formatting in your response.
                     """.strip()
         return make_request(prompt, model=self.model_name)
 
