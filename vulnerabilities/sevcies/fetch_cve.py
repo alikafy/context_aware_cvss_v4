@@ -46,7 +46,7 @@ class FetchCVEService:
             cve_id=self.cve_id,
             cve_description=response['descriptions'][0]['value'],
             cve_status=response['vulnStatus'],
-            weaknesses=self.fetch_weaknesses(response['weaknesses']),
+            weaknesses=self.fetch_weaknesses(response.get('weaknesses', [])),
             cve_response=response,
             base_score=float(response['metrics']['cvssMetricV40'][0]['cvssData']['baseScore']),
             base_vector=response['metrics']['cvssMetricV40'][0]['cvssData'],
