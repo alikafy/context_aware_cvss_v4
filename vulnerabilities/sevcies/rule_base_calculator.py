@@ -71,7 +71,11 @@ def calculate_mpr(base_pr: PR, asset: Asset) -> dict:
     rationale = f"Defaulting to base metric PR: {base_pr.value} as no specific context rule was met."
     confidence = "High"
 
-    if convert_to_abbreviations(base_pr.value) in [VALUE_N, VALUE_L] and asset.authentication_strength == 'Multi_Factor':
+    if mpr == VALUE_N:
+        mpr = VALUE_N
+        rationale = "The base Privileges Required is None (N), indicating no authentication is necessary to exploit the vulnerability."
+        confidence = "High"
+    elif convert_to_abbreviations(base_pr.value) in [VALUE_N, VALUE_L] and asset.authentication_strength == 'Multi_Factor':
         mpr = VALUE_H
         rationale = "MPR increased to High because the asset enforces Multi-Factor Authentication."
         confidence = "High"
