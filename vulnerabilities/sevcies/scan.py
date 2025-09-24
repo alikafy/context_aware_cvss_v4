@@ -76,6 +76,8 @@ Treat versions lexicographically if needed, but numeric comparison is preferred 
 
 Strict Adherence: Adhere strictly to the provided text. Do not infer vulnerabilities for products not mentioned or versions outside the specified ranges.
 
+If no version range is mentioned in the CVE description, assume that all versions of the product are impacted.
+
 OUTPUT FORMAT:
 Respond with a single, clean JSON object. This object must contain one key, "impacted_asset_ids", which is a JSON array of integers representing the matching asset IDs. If no assets are impacted, the array must be empty. Do not include any other text, explanations, or markdown formatting in your response.
                     """.strip()
