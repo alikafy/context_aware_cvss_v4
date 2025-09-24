@@ -135,7 +135,7 @@ class APICallLogAdmin(admin.ModelAdmin):
 
     @admin.display(boolean=True, description="Error?")
     def has_error(self, obj: APICallLog):
-        return bool(obj.error_message)
+        return not bool(obj.error_message)
 
     def export_as_json(self, request, queryset):
         data = []
