@@ -1,5 +1,8 @@
 import json
+import re
 from typing import List
+
+from django.db.models import Q
 
 from assets.models import Asset
 from vulnerabilities.models import Vulnerability
@@ -31,12 +34,29 @@ class Scan:
         """
         return make_request(prompt, model=self.model_name)
 
-    def search_vuln_systems_in_assets(self, vuln_systems: list) -> List[Asset]:
-        impacted_assets = []
-        for system in vuln_systems:
-            assets = list(Asset.objects.filter(is_active=True, name__icontains=system))
-            impacted_assets.extend(assets)
-        return impacted_assets
+    def search_vuln_systems_in_assets(self, vuln_systems: List[str]) -> List[Asset]:
+        base_qs = Asset.objects.filter(is_active=True)
+        overall_q = Q()
+        for raw_system in vuln_systems:
+            system = (raw_system or "").strip()
+            if not system:
+                continue
+
+            # 1) whole-word regex, e.g. r'(^|\W)nginx(\W|$)'
+            word_boundary_pattern = r'(^|\W){}(\W|$)'.format(re.escape(system))
+            system_q = Q(name__iregex=word_boundary_pattern)
+
+            # 2) token subset match: all tokens of "system" must appear somewhere in asset name
+            tokens = [t for t in re.split(r"\s+", system) if t]
+            if tokens:
+                token_q = Q()
+                for t in tokens:
+                    token_q &= Q(name__icontains=t)
+                system_q |= token_q
+
+            overall_q |= system_q
+
+        return list(base_qs.filter(overall_q).distinct())
 
     def format_assets_as_json(self, user_assets: list[Asset]):
         asset_list = [
